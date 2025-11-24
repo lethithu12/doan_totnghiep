@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "631869539803",
+    "project_id": "appbandodientu-a940c",
+    "storage_bucket": "appbandodientu-a940c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:631869539803:android:461bf9fe7d6e9d46ddd3fe",
+        "android_client_info": {
+          "package_name": "com.example.doanelectronic"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "631869539803-i7mks0gll5dchvtpi5vi4jsoeijherkq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCEv-aLN_G1rwSKoI0sVKLI9LS9DbfXV4Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "631869539803-i7mks0gll5dchvtpi5vi4jsoeijherkq.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

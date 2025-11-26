@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 import '../config/colors.dart';
 import '../services/auth_service.dart';
+import 'header_orders_button.dart';
 
 class Header extends StatelessWidget {
   const Header({super.key});
@@ -43,7 +44,7 @@ class Header extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Đoan Electronic',
+                      'ChangStore',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: AppColors.headerText,
@@ -78,9 +79,12 @@ class Header extends StatelessWidget {
                   icon: Icons.shopping_cart,
                 ),
                 const SizedBox(width: 24),
+                HeaderOrdersButton(isMobile: false),
+                const SizedBox(width: 24),
                 _AccountButton(isMobile: false),
               ] else ...[
-                // Mobile: Cart icon và Menu button
+                // Mobile: Orders, Cart icon và Menu button
+                HeaderOrdersButton(isMobile: true),
                 IconButton(
                   icon: const Icon(
                     Icons.shopping_cart_outlined,
@@ -131,6 +135,12 @@ class Header extends StatelessWidget {
               label: 'Danh mục',
               icon: Icons.category,
               route: '/categories',
+            ),
+            const SizedBox(height: 16),
+            _MobileNavItem(
+              label: 'Đơn hàng',
+              icon: Icons.receipt_long,
+              route: '/orders',
             ),
             const SizedBox(height: 16),
             _MobileNavItem(

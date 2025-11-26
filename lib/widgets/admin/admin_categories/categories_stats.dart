@@ -89,46 +89,45 @@ class CategoryStatCard extends StatelessWidget {
       elevation: 2,
       child: Padding(
         padding: EdgeInsets.all(isTablet ? 16 : 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(icon, color: color, size: isTablet ? 20 : 24),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Flexible(
-              child: Text(
-                value,
-                style: TextStyle(
-                  fontSize: isTablet ? 24 : 28,
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
+            // Icon
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
               ),
+              child: Icon(icon, color: color, size: isTablet ? 20 : 24),
             ),
-            const SizedBox(height: 4),
-            Flexible(
-              child: Text(
-                title,
-                style: TextStyle(
-                  fontSize: isTablet ? 12 : 14,
-                  color: Colors.grey[600],
-                ),
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
+            const SizedBox(width: 12),
+            // Content
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: isTablet ? 24 : 28,
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: isTablet ? 12 : 14,
+                      color: Colors.grey[600],
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ],
               ),
             ),
           ],

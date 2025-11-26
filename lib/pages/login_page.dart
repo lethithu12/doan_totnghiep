@@ -93,7 +93,7 @@ class _AuthTabs extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Đoan Electronic',
+              'ChangStore',
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                     fontSize: isMobile ? 28 : 32,
@@ -515,7 +515,7 @@ class _RegisterTabState extends State<_RegisterTab> {
           context.go('/');
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Đăng ký thành công! Chào mừng bạn đến với Đoan Electronic!'),
+              content: Text('Đăng ký thành công! Chào mừng bạn đến với ChangStore!'),
               backgroundColor: Colors.green,
               duration: Duration(seconds: 3),
             ),

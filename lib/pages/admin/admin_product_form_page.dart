@@ -7,10 +7,9 @@ import '../../services/category_service.dart';
 import '../../services/image_service.dart';
 import '../../models/product_model.dart';
 import '../../models/category_model.dart';
-import '../../widgets/admin/admin_products/basic_info_section.dart';
-import '../../widgets/admin/admin_products/image_and_description_section.dart';
-import '../../widgets/admin/admin_products/mobile_product_form.dart';
 import '../../widgets/admin/admin_products/product_options_section.dart';
+import '../../widgets/admin/admin_products/product_specifications_section.dart';
+import '../../widgets/admin/admin_products/product_info_tab.dart';
 import '../../widgets/admin/admin_products/action_buttons.dart';
 
 class AdminProductFormPage extends StatefulWidget {
@@ -25,11 +24,13 @@ class AdminProductFormPage extends StatefulWidget {
   State<AdminProductFormPage> createState() => _AdminProductFormPageState();
 }
 
-class _AdminProductFormPageState extends State<AdminProductFormPage> {
+class _AdminProductFormPageState extends State<AdminProductFormPage>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _productService = ProductService();
   final _categoryService = CategoryService();
   final _imageService = ImageService();
+  late TabController _tabController;
   final _nameController = TextEditingController();
   final _priceController = TextEditingController();
   final _originalPriceController = TextEditingController();
@@ -39,8 +40,8 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
   String? _selectedParentCategoryId;
   String? _selectedChildCategoryId;
   String? _selectedStatus = 'Còn hàng';
-  PlatformFile? _selectedImageFile;
-  String? _imageUrl;
+  final List<PlatformFile> _selectedImageFiles = [];
+  final List<String> _imageUrls = [];
   bool _isLoading = false;
   bool _isUploading = false;
   ProductModel? _existingProduct;
@@ -49,6 +50,11 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
   final List<String> _versions = [];
   final List<Map<String, dynamic>> _colors = [];
   final List<Map<String, dynamic>> _options = [];
+  
+  // Specifications
+  final List<Map<String, String>> _specifications = [];
+  final TextEditingController _specLabelController = TextEditingController();
+  final TextEditingController _specValueController = TextEditingController();
 
   // Controllers for adding versions/colors/options
   final TextEditingController _versionController = TextEditingController();
@@ -65,6 +71,7 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 3, vsync: this);
     if (widget.productId != null) {
       _loadProductData();
     }
@@ -88,7 +95,14 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
           _selectedParentCategoryId = product.categoryId;
           _selectedChildCategoryId = product.childCategoryId;
           _selectedStatus = product.status;
-          _imageUrl = product.imageUrl;
+          // Load images
+          _imageUrls.clear();
+          if (product.imageUrl != null) {
+            _imageUrls.add(product.imageUrl!);
+          }
+          if (product.imageUrls != null) {
+            _imageUrls.addAll(product.imageUrls!);
+          }
           // Load versions, colors, and options
           _versions.clear();
           if (product.versions != null) {
@@ -101,6 +115,11 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
           _options.clear();
           if (product.options != null) {
             _options.addAll(product.options!);
+          }
+          // Load specifications
+          _specifications.clear();
+          if (product.specifications != null) {
+            _specifications.addAll(product.specifications!);
           }
         });
       } else if (mounted) {
@@ -130,13 +149,12 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
     }
   }
 
-  Future<void> _pickImage() async {
+  Future<void> _pickImages() async {
     try {
-      final platformFile = await _imageService.pickImage();
-      if (platformFile != null) {
+      final platformFiles = await _imageService.pickMultipleImages();
+      if (platformFiles.isNotEmpty) {
         setState(() {
-          _selectedImageFile = platformFile;
-          _imageUrl = null; // Reset URL when new image is selected
+          _selectedImageFiles.addAll(platformFiles);
         });
       }
     } catch (e) {
@@ -149,6 +167,17 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
         );
       }
     }
+  }
+
+  void _removeImage(int index) {
+    setState(() {
+      if (index < _selectedImageFiles.length) {
+        _selectedImageFiles.removeAt(index);
+      } else {
+        final urlIndex = index - _selectedImageFiles.length;
+        _imageUrls.removeAt(urlIndex);
+      }
+    });
   }
 
   @override
@@ -164,6 +193,9 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
     _optionOriginalPriceController.dispose();
     _optionDiscountController.dispose();
     _optionQuantityController.dispose();
+    _specLabelController.dispose();
+    _specValueController.dispose();
+    _tabController.dispose();
     super.dispose();
   }
 
@@ -342,6 +374,31 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
     });
   }
 
+  void _addSpecification() {
+    final label = _specLabelController.text.trim();
+    final value = _specValueController.text.trim();
+    if (label.isEmpty || value.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng nhập đầy đủ tên và giá trị thông số'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+    setState(() {
+      _specifications.add({'label': label, 'value': value});
+      _specLabelController.clear();
+      _specValueController.clear();
+    });
+  }
+
+  void _removeSpecification(int index) {
+    setState(() {
+      _specifications.removeAt(index);
+    });
+  }
+
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -362,15 +419,26 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
     });
 
     try {
-      String? finalImageUrl = _imageUrl;
-
-      // Upload image if new file is selected
-      if (_selectedImageFile != null) {
-        finalImageUrl = await _imageService.uploadImage(
-          platformFile: _selectedImageFile!,
+      // Upload all selected images
+      final List<String> uploadedImageUrls = [];
+      
+      // Upload new files
+      for (final file in _selectedImageFiles) {
+        final url = await _imageService.uploadImage(
+          platformFile: file,
           folder: 'products',
         );
+        uploadedImageUrls.add(url);
       }
+      
+      // Combine with existing URLs
+      uploadedImageUrls.addAll(_imageUrls);
+      
+      // First image is main image, rest are additional images
+      final String? finalImageUrl = uploadedImageUrls.isNotEmpty ? uploadedImageUrls.first : null;
+      final List<String>? finalImageUrls = uploadedImageUrls.length > 1 
+          ? uploadedImageUrls.sublist(1) 
+          : null;
 
       final now = DateTime.now();
       final product = ProductModel(
@@ -385,6 +453,7 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
         quantity: int.parse(_quantityController.text.trim()),
         status: _selectedStatus ?? 'Còn hàng',
         imageUrl: finalImageUrl,
+        imageUrls: finalImageUrls,
         description: _descriptionController.text.trim().isEmpty
             ? null
             : _descriptionController.text.trim(),
@@ -393,6 +462,7 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
         versions: _versions.isEmpty ? null : _versions,
         colors: _colors.isEmpty ? null : _colors,
         options: _options.isEmpty ? null : _options,
+        specifications: _specifications.isEmpty ? null : _specifications,
         createdAt: _existingProduct?.createdAt ?? now,
         updatedAt: now,
       );
@@ -511,154 +581,109 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
                   ],
                 ),
                 const SizedBox(height: 24),
-                // Form content
-                if (isMobile)
-                  MobileProductForm(
-                    nameController: _nameController,
-                    priceController: _priceController,
-                    originalPriceController: _originalPriceController,
-                    quantityController: _quantityController,
-                    descriptionController: _descriptionController,
-                    selectedParentCategoryId: _selectedParentCategoryId,
-                    selectedChildCategoryId: _selectedChildCategoryId,
-                    selectedStatus: _selectedStatus,
-                    parentCategories: parentCategories,
-                    childCategories: childCategories,
-                    onParentCategoryChanged: (value) {
-                      setState(() {
-                        _selectedParentCategoryId = value;
-                        _selectedChildCategoryId = null; // Reset child when parent changes
-                      });
-                    },
-                    onChildCategoryChanged: (value) {
-                      setState(() {
-                        _selectedChildCategoryId = value;
-                      });
-                    },
-                    onStatusChanged: (value) {
-                      setState(() {
-                        _selectedStatus = value;
-                      });
-                    },
-                    selectedImageFile: _selectedImageFile,
-                    imageUrl: _imageUrl,
-                    onPickImage: _pickImage,
-                    isLoading: _isLoading,
-                    isUploading: _isUploading,
-                    onSubmit: _handleSubmit,
-                    versions: _versions,
-                    colors: _colors,
-                    options: _options,
-                    versionController: _versionController,
-                    colorNameController: _colorNameController,
-                    colorHexController: _colorHexController,
-                    selectedVersionForOption: _selectedVersionForOption,
-                    selectedColorForOption: _selectedColorForOption,
-                    optionOriginalPriceController: _optionOriginalPriceController,
-                    optionDiscountController: _optionDiscountController,
-                    optionQuantityController: _optionQuantityController,
-                    basePrice: int.tryParse(_priceController.text.trim()) ?? 0,
-                    onVersionChanged: (value) {
-                      setState(() {
-                        _selectedVersionForOption = value;
-                      });
-                    },
-                    onColorChanged: (value) {
-                      setState(() {
-                        _selectedColorForOption = value;
-                      });
-                    },
-                    onAddVersion: _addVersion,
-                    onRemoveVersion: _removeVersion,
-                    onAddColor: _addColor,
-                    onRemoveColor: _removeColor,
-                    onAddOption: _addOption,
-                    onRemoveOption: _removeOption,
-                  )
-                else
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                // Tab Bar
+                TabBar(
+                  controller: _tabController,
+                  labelColor: Theme.of(context).colorScheme.primary,
+                  unselectedLabelColor: Colors.grey,
+                  indicatorColor: Theme.of(context).colorScheme.primary,
+                  tabs: const [
+                    Tab(text: 'Thông tin'),
+                    Tab(text: 'Option'),
+                    Tab(text: 'Thông số'),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Tab Bar View
+                SizedBox(
+                  height: isMobile ? 600 : 700,
+                  child: TabBarView(
+                    controller: _tabController,
                     children: [
-                      // Left column - Basic info
-                      Expanded(
-                        flex: 2,
-                        child: BasicInfoSection(
-                          nameController: _nameController,
-                          priceController: _priceController,
-                          originalPriceController: _originalPriceController,
-                          quantityController: _quantityController,
-                          selectedParentCategoryId: _selectedParentCategoryId,
-                          selectedChildCategoryId: _selectedChildCategoryId,
-                          selectedStatus: _selectedStatus,
-                          parentCategories: parentCategories,
-                          childCategories: childCategories,
-                          onParentCategoryChanged: (value) {
+                      // Tab 1: Thông tin
+                      ProductInfoTab(
+                        nameController: _nameController,
+                        priceController: _priceController,
+                        originalPriceController: _originalPriceController,
+                        quantityController: _quantityController,
+                        descriptionController: _descriptionController,
+                        selectedParentCategoryId: _selectedParentCategoryId,
+                        selectedChildCategoryId: _selectedChildCategoryId,
+                        selectedStatus: _selectedStatus,
+                        parentCategories: parentCategories,
+                        childCategories: childCategories,
+                        onParentCategoryChanged: (value) {
+                          setState(() {
+                            _selectedParentCategoryId = value;
+                            _selectedChildCategoryId = null;
+                          });
+                        },
+                        onChildCategoryChanged: (value) {
+                          setState(() {
+                            _selectedChildCategoryId = value;
+                          });
+                        },
+                        onStatusChanged: (value) {
+                          setState(() {
+                            _selectedStatus = value;
+                          });
+                        },
+                        selectedImageFiles: _selectedImageFiles,
+                        imageUrls: _imageUrls,
+                        onPickImages: _pickImages,
+                        onRemoveImage: _removeImage,
+                        isUploading: _isUploading,
+                        isTablet: isTablet,
+                        isMobile: isMobile,
+                      ),
+                      // Tab 2: Option
+                      SingleChildScrollView(
+                        child: ProductOptionsSection(
+                          versions: _versions,
+                          colors: _colors,
+                          options: _options,
+                          versionController: _versionController,
+                          colorNameController: _colorNameController,
+                          colorHexController: _colorHexController,
+                          selectedVersionForOption: _selectedVersionForOption,
+                          selectedColorForOption: _selectedColorForOption,
+                          optionOriginalPriceController: _optionOriginalPriceController,
+                          optionDiscountController: _optionDiscountController,
+                          optionQuantityController: _optionQuantityController,
+                          basePrice: int.tryParse(_priceController.text.trim()) ?? 0,
+                          onVersionChanged: (value) {
                             setState(() {
-                              _selectedParentCategoryId = value;
-                              _selectedChildCategoryId = null;
+                              _selectedVersionForOption = value;
                             });
                           },
-                          onChildCategoryChanged: (value) {
+                          onColorChanged: (value) {
                             setState(() {
-                              _selectedChildCategoryId = value;
+                              _selectedColorForOption = value;
                             });
                           },
-                          onStatusChanged: (value) {
-                            setState(() {
-                              _selectedStatus = value;
-                            });
-                          },
+                          onAddVersion: _addVersion,
+                          onRemoveVersion: _removeVersion,
+                          onAddColor: _addColor,
+                          onRemoveColor: _removeColor,
+                          onAddOption: _addOption,
+                          onRemoveOption: _removeOption,
                           isTablet: isTablet,
+                          isMobile: isMobile,
                         ),
                       ),
-                      const SizedBox(width: 24),
-                      // Right column - Image and Description
-                      Expanded(
-                        flex: 1,
-                        child: ImageAndDescriptionSection(
-                          selectedImageFile: _selectedImageFile,
-                          imageUrl: _imageUrl,
-                          onPickImage: _pickImage,
-                          descriptionController: _descriptionController,
-                          isUploading: _isUploading,
+                      // Tab 3: Thông số
+                      SingleChildScrollView(
+                        child: ProductSpecificationsSection(
+                          specifications: _specifications,
+                          labelController: _specLabelController,
+                          valueController: _specValueController,
+                          onAddSpecification: _addSpecification,
+                          onRemoveSpecification: _removeSpecification,
                           isTablet: isTablet,
                         ),
                       ),
                     ],
                   ),
-                const SizedBox(height: 24),
-                // Product Options Section
-                ProductOptionsSection(
-                  versions: _versions,
-                  colors: _colors,
-                  options: _options,
-                  versionController: _versionController,
-                  colorNameController: _colorNameController,
-                  colorHexController: _colorHexController,
-                  selectedVersionForOption: _selectedVersionForOption,
-                  selectedColorForOption: _selectedColorForOption,
-                  optionOriginalPriceController: _optionOriginalPriceController,
-                  optionDiscountController: _optionDiscountController,
-                  optionQuantityController: _optionQuantityController,
-                  basePrice: int.tryParse(_priceController.text.trim()) ?? 0,
-                  onVersionChanged: (value) {
-                    setState(() {
-                      _selectedVersionForOption = value;
-                    });
-                  },
-                  onColorChanged: (value) {
-                    setState(() {
-                      _selectedColorForOption = value;
-                    });
-                  },
-                  onAddVersion: _addVersion,
-                  onRemoveVersion: _removeVersion,
-                  onAddColor: _addColor,
-                  onRemoveColor: _removeColor,
-                  onAddOption: _addOption,
-                  onRemoveOption: _removeOption,
-                  isTablet: isTablet,
-                  isMobile: false,
                 ),
                 const SizedBox(height: 24),
                 // Action buttons

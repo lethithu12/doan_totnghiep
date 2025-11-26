@@ -233,10 +233,26 @@ class _AdminSidebar extends StatelessWidget {
                   isCollapsed: isCollapsed,
                 ),
                 _AdminSidebarItem(
+                  icon: Icons.rate_review,
+                  label: 'Đánh giá',
+                  route: '/admin/reviews',
+                  isActive: currentPath == '/admin/reviews',
+                  isTablet: isTablet,
+                  isCollapsed: isCollapsed,
+                ),
+                _AdminSidebarItem(
                   icon: Icons.people,
                   label: 'Người dùng',
                   route: '/admin/users',
                   isActive: currentPath == '/admin/users',
+                  isTablet: isTablet,
+                  isCollapsed: isCollapsed,
+                ),
+                _AdminSidebarItem(
+                  icon: Icons.home,
+                  label: 'Sections Trang Chủ',
+                  route: '/admin/home-sections',
+                  isActive: currentPath == '/admin/home-sections',
                   isTablet: isTablet,
                   isCollapsed: isCollapsed,
                 ),
@@ -387,12 +403,32 @@ class _AdminDrawer extends StatelessWidget {
                   },
                 ),
                 _AdminDrawerItem(
+                  icon: Icons.rate_review,
+                  label: 'Đánh giá',
+                  route: '/admin/reviews',
+                  isActive: currentPath == '/admin/reviews',
+                  onTap: () {
+                    context.go('/admin/reviews');
+                    onItemSelected();
+                  },
+                ),
+                _AdminDrawerItem(
                   icon: Icons.people,
                   label: 'Người dùng',
                   route: '/admin/users',
                   isActive: currentPath == '/admin/users',
                   onTap: () {
                     context.go('/admin/users');
+                    onItemSelected();
+                  },
+                ),
+                _AdminDrawerItem(
+                  icon: Icons.home,
+                  label: 'Sections Trang Chủ',
+                  route: '/admin/home-sections',
+                  isActive: currentPath == '/admin/home-sections',
+                  onTap: () {
+                    context.go('/admin/home-sections');
                     onItemSelected();
                   },
                 ),

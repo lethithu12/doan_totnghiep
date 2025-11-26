@@ -120,7 +120,7 @@ class ProductOptionsSection extends StatelessWidget {
                 ElevatedButton.icon(
                   onPressed: onAddVersion,
                   icon: const Icon(Icons.add),
-                  label: const Text('Thêm'),
+                  label: const Text(''),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
@@ -196,7 +196,7 @@ class ProductOptionsSection extends StatelessWidget {
                 ElevatedButton.icon(
                   onPressed: onAddColor,
                   icon: const Icon(Icons.add),
-                  label: const Text('Thêm'),
+                  label: const Text(''),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),

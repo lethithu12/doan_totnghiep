@@ -1,44 +1,107 @@
 import 'package:flutter/material.dart';
 import 'package:responsive_framework/responsive_framework.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:go_router/go_router.dart';
 import '../widgets/footer.dart';
+import '../services/cart_service.dart';
+import '../services/auth_service.dart';
+import '../models/cart_model.dart';
 
-class CartPage extends StatelessWidget {
+class CartPage extends StatefulWidget {
   const CartPage({super.key});
 
   @override
+  State<CartPage> createState() => _CartPageState();
+}
+
+class _CartPageState extends State<CartPage> {
+  final _cartService = CartService();
+  final _authService = AuthService();
+
+  @override
   Widget build(BuildContext context) {
-    // Mock cart items
-    final cartItems = List.generate(3, (index) => {
-      'id': 'item-$index',
-      'name': 'Sản phẩm ${index + 1}',
-      'price': (1000000 + index * 500000),
-      'quantity': index + 1,
-      'image': 'https://images.unsplash.com/photo-1609692814858-f7cd2f0afa4f?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-    });
-
-    final total = cartItems.fold<int>(
-      0,
-      (sum, item) => sum + (item['price'] as int) * (item['quantity'] as int),
-    );
-
-    return SingleChildScrollView(
-      child: ResponsiveConstraints(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(24),
+    // Check if user is logged in
+    if (!_authService.isLoggedIn) {
+      return SingleChildScrollView(
+        child: ResponsiveConstraints(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Center(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  Icon(
+                    Icons.shopping_cart_outlined,
+                    size: 64,
+                    color: Colors.grey[400],
+                  ),
+                  const SizedBox(height: 16),
                   Text(
-                    'Giỏ hàng',
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                    'Vui lòng đăng nhập để xem giỏ hàng',
+                    style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 24),
-                  if (cartItems.isEmpty)
+                  ElevatedButton(
+                    onPressed: () {
+                      context.push('/login');
+                    },
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      child: Text('Đăng nhập'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return StreamBuilder<List<CartItemModel>>(
+      stream: _cartService.getCartItems(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                const SizedBox(height: 16),
+                Text('Lỗi: ${snapshot.error}'),
+              ],
+            ),
+          );
+        }
+
+        final cartItems = snapshot.data ?? [];
+        final total = cartItems.fold<int>(
+          0,
+          (sum, item) => sum + item.totalPrice,
+        );
+
+        return SingleChildScrollView(
+          child: ResponsiveConstraints(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Giỏ hàng',
+                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                      const SizedBox(height: 24),
+                      if (cartItems.isEmpty)
                     SizedBox(
                       height: 400,
                       child: Center(
@@ -84,38 +147,94 @@ class CartPage extends StatelessWidget {
                                         ),
                                         child: ClipRRect(
                                           borderRadius: BorderRadius.circular(8),
-                                          child: Image.network(
-                                            item['image'] as String,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (context, error, stackTrace) {
-                                              return Icon(
-                                                Icons.image,
-                                                color: Colors.grey[400],
-                                              );
-                                            },
-                                          ),
+                                          child: item.imageUrl != null
+                                              ? CachedNetworkImage(
+                                                  imageUrl: item.imageUrl!,
+                                                  fit: BoxFit.cover,
+                                                  placeholder: (context, url) => Center(
+                                                    child: CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                                        Theme.of(context).colorScheme.primary,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  errorWidget: (context, url, error) => Icon(
+                                                    Icons.image,
+                                                    color: Colors.grey[400],
+                                                  ),
+                                                )
+                                              : Icon(
+                                                  Icons.image,
+                                                  color: Colors.grey[400],
+                                                ),
                                         ),
                                       ),
-                                      title: Text(item['name'] as String),
-                                      subtitle: Text(
-                                        '${_formatPrice(item['price'] as int)} đ',
+                                      title: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(item.productName),
+                                          if (item.selectedVersion != null || item.selectedColor != null) ...[
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              [
+                                                if (item.selectedVersion != null) item.selectedVersion,
+                                                if (item.selectedColor != null) item.selectedColor,
+                                              ].join(' - '),
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey[600],
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                      subtitle: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            '${_formatPrice(item.price)} đ',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: Theme.of(context).colorScheme.primary,
+                                            ),
+                                          ),
+                                          if (item.originalPrice > item.price) ...[
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              '${_formatPrice(item.originalPrice)} đ',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey[600],
+                                                decoration: TextDecoration.lineThrough,
+                                              ),
+                                            ),
+                                          ],
+                                        ],
                                       ),
                                       trailing: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           IconButton(
                                             icon: const Icon(Icons.remove_circle_outline),
-                                            onPressed: () {},
+                                            onPressed: () {
+                                              _updateQuantity(item.id, item.quantity - 1);
+                                            },
                                           ),
-                                          Text('${item['quantity']}'),
+                                          Text('${item.quantity}'),
                                           IconButton(
                                             icon: const Icon(Icons.add_circle_outline),
-                                            onPressed: () {},
+                                            onPressed: () {
+                                              _updateQuantity(item.id, item.quantity + 1);
+                                            },
                                           ),
                                           const SizedBox(width: 8),
                                           IconButton(
                                             icon: const Icon(Icons.delete_outline),
-                                            onPressed: () {},
+                                            onPressed: () {
+                                              _removeItem(item.id);
+                                            },
                                           ),
                                         ],
                                       ),
@@ -175,10 +294,14 @@ class CartPage extends StatelessWidget {
                                       SizedBox(
                                         width: double.infinity,
                                         child: ElevatedButton(
-                                          onPressed: () {},
+                                          onPressed: cartItems.isEmpty
+                                              ? null
+                                              : () {
+                                                  context.push('/checkout');
+                                                },
                                           child: const Padding(
                                             padding: EdgeInsets.all(16),
-                                            child: Text('Thanh toán'),
+                                            child: Text('Tiến hành thanh toán'),
                                           ),
                                         ),
                                       ),
@@ -211,31 +334,96 @@ class CartPage extends StatelessWidget {
                                             color: Colors.grey[200],
                                             borderRadius: BorderRadius.circular(8),
                                           ),
-                                          child: Icon(
-                                            Icons.image,
-                                            color: Colors.grey[400],
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(8),
+                                            child: item.imageUrl != null
+                                                ? CachedNetworkImage(
+                                                    imageUrl: item.imageUrl!,
+                                                    fit: BoxFit.cover,
+                                                    placeholder: (context, url) => Center(
+                                                      child: CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                        valueColor: AlwaysStoppedAnimation<Color>(
+                                                          Theme.of(context).colorScheme.primary,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    errorWidget: (context, url, error) => Icon(
+                                                      Icons.image,
+                                                      color: Colors.grey[400],
+                                                    ),
+                                                  )
+                                                : Icon(
+                                                    Icons.image,
+                                                    color: Colors.grey[400],
+                                                  ),
                                           ),
                                         ),
-                                        title: Text(item['name'] as String),
-                                        subtitle: Text(
-                                          '${_formatPrice(item['price'] as int)} đ',
+                                        title: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(item.productName),
+                                            if (item.selectedVersion != null || item.selectedColor != null) ...[
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                [
+                                                  if (item.selectedVersion != null) item.selectedVersion,
+                                                  if (item.selectedColor != null) item.selectedColor,
+                                                ].join(' - '),
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.grey[600],
+                                                ),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                        subtitle: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              '${_formatPrice(item.price)} đ',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color: Theme.of(context).colorScheme.primary,
+                                              ),
+                                            ),
+                                            if (item.originalPrice > item.price) ...[
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                '${_formatPrice(item.originalPrice)} đ',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.grey[600],
+                                                  decoration: TextDecoration.lineThrough,
+                                                ),
+                                              ),
+                                            ],
+                                          ],
                                         ),
                                         trailing: Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
                                             IconButton(
                                               icon: const Icon(Icons.remove_circle_outline),
-                                              onPressed: () {},
+                                              onPressed: () {
+                                                _updateQuantity(item.id, item.quantity - 1);
+                                              },
                                             ),
-                                            Text('${item['quantity']}'),
+                                            Text('${item.quantity}'),
                                             IconButton(
                                               icon: const Icon(Icons.add_circle_outline),
-                                              onPressed: () {},
+                                              onPressed: () {
+                                                _updateQuantity(item.id, item.quantity + 1);
+                                              },
                                             ),
                                             const SizedBox(width: 8),
                                             IconButton(
                                               icon: const Icon(Icons.delete_outline),
-                                              onPressed: () {},
+                                              onPressed: () {
+                                                _removeItem(item.id);
+                                              },
                                             ),
                                           ],
                                         ),
@@ -298,10 +486,14 @@ class CartPage extends StatelessWidget {
                                         SizedBox(
                                           width: double.infinity,
                                           child: ElevatedButton(
-                                            onPressed: () {},
+                                            onPressed: cartItems.isEmpty
+                                                ? null
+                                                : () {
+                                                    context.push('/checkout');
+                                                  },
                                             child: const Padding(
                                               padding: EdgeInsets.all(16),
-                                              child: Text('Thanh toán'),
+                                              child: Text('Tiến hành thanh toán'),
                                             ),
                                           ),
                                         ),
@@ -318,11 +510,54 @@ class CartPage extends StatelessWidget {
                 ],
               ),
             ),
-            const Footer(),
-          ],
-        ),
-      ),
+                const Footer(),
+              ],
+            ),
+          ),
+        );
+      },
     );
+  }
+
+  Future<void> _updateQuantity(String itemId, int newQuantity) async {
+    try {
+      await _cartService.updateQuantity(itemId, newQuantity);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _removeItem(String itemId) async {
+    try {
+      await _cartService.removeFromCart(itemId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đã xóa sản phẩm khỏi giỏ hàng'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
   }
 
   String _formatPrice(int price) {

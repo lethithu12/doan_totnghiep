@@ -5,6 +5,7 @@ import '../../widgets/admin/admin_products/products_stats.dart';
 import '../../widgets/admin/admin_products/products_search_and_filter_bar.dart';
 import '../../widgets/admin/admin_products/products_data_table.dart';
 import '../../widgets/admin/admin_products/mobile_products_view.dart';
+import '../../widgets/admin/admin_products/view_product_dialog.dart';
 import '../../services/product_service.dart';
 import '../../services/category_service.dart';
 import '../../models/product_model.dart';
@@ -186,6 +187,28 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
                 sortColumnIndex: _sortColumnIndex,
                 sortAscending: _sortAscending,
                 formatPrice: _formatPrice,
+                onDelete: (product) async {
+                  try {
+                    await _productService.deleteProduct(product.id);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Đã xóa sản phẩm: ${product.name}'),
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Lỗi: ${e.toString()}'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                },
               );
             }
 
@@ -267,9 +290,14 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
                           isTablet: isTablet,
                           formatPrice: _formatPrice,
                           onView: (product) {
-                            // TODO: View product details
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Xem chi tiết: ${product.name}')),
+                            showDialog(
+                              context: context,
+                              builder: (context) => ViewProductDialog(
+                                product: product,
+                                categories: categories,
+                                formatPrice: _formatPrice,
+                                isMobile: false,
+                              ),
                             );
                           },
                           onEdit: (product) {

@@ -11,9 +11,10 @@ class AppColors {
   static const Color categoryItemHover = Color(0xFFF5F5F5);
   
   // Primary colors - màu chủ đạo #d70018
-  static const Color primary = Color(0xFFD70018);
-  static const Color primaryLight = Color(0xFFFF5252);
-  static const Color primaryDark = Color(0xFFB71C1C);
+  //đổi sang xanh da dương nhạt
+  static const Color primary = Color(0xFF0056B3);
+  static const Color primaryLight = Color(0xFF007BFF);
+  static const Color primaryDark = Color(0xFF0056B3);
   
   // Text colors
   static const Color textPrimary = Color(0xFF212121);
@@ -24,7 +25,7 @@ class AppColors {
   static const Color backgroundWhite = Color(0xFFFFFFFF);
   
   // Header colors
-  static const Color headerBackground = Color(0xFFD70018);
+  static const Color headerBackground = Color(0xFF0056B3);
   static const Color headerText = Color(0xFFFFFFFF);
   static const Color headerIcon = Color(0xFFFFFFFF);
   static const Color headerNavActive = Color(0xFFFFFFFF);

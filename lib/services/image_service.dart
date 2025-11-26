@@ -24,6 +24,24 @@ class ImageService {
     }
   }
 
+  // Pick multiple images from device (supports web and mobile)
+  Future<List<PlatformFile>> pickMultipleImages() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: true,
+        withData: kIsWeb, // Get bytes for web
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        return result.files;
+      }
+      return [];
+    } catch (e) {
+      throw 'Lỗi khi chọn ảnh: ${e.toString()}';
+    }
+  }
+
   // Upload image to Firebase Storage (supports web and mobile)
   Future<String> uploadImage({
     required PlatformFile platformFile,

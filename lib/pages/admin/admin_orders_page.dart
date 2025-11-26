@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 import 'package:data_table_2/data_table_2.dart';
+import '../../models/order_model.dart';
+import '../../models/order_status.dart';
+import '../../models/payment_method.dart';
+import '../../services/order_service.dart';
+import '../../widgets/pages/orders/order_detail_dialog.dart';
 
 class AdminOrdersPage extends StatefulWidget {
   const AdminOrdersPage({super.key});
@@ -14,38 +19,21 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
   int _sortColumnIndex = 0;
   bool _sortAscending = true;
   final TextEditingController _searchController = TextEditingController();
-  String? _selectedStatus;
+  OrderStatus? _selectedStatus;
   String? _selectedDateRange;
-
-  // Mock data
-  final List<Map<String, dynamic>> _orders = List.generate(
-    50,
-    (index) {
-      final statuses = ['Chờ xử lý', 'Đã xác nhận', 'Đang xử lý', 'Đang giao', 'Đã hoàn thành', 'Đã hủy'];
-      final status = statuses[index % statuses.length];
-      final total = 1000000 + (index * 50000);
-      return {
-        'id': 'ORD${(index + 1).toString().padLeft(6, '0')}',
-        'customerName': 'Khách hàng ${index + 1}',
-        'customerEmail': 'customer${index + 1}@example.com',
-        'products': '${(index % 5) + 1} sản phẩm',
-        'total': total,
-        'status': status,
-        'createdAt': '${2024 - (index % 2)}-${((index % 12) + 1).toString().padLeft(2, '0')}-${((index % 28) + 1).toString().padLeft(2, '0')}',
-        'paymentMethod': index % 2 == 0 ? 'Tiền mặt' : 'Chuyển khoản',
-      };
-    },
-  );
-
-  List<Map<String, dynamic>> _sortedOrders = [];
-  List<Map<String, dynamic>> _filteredOrders = [];
+  final OrderService _orderService = OrderService();
+  List<OrderModel> _allOrders = [];
 
   @override
   void initState() {
     super.initState();
-    _sortedOrders = List.from(_orders);
-    _filteredOrders = List.from(_orders);
-    _searchController.addListener(_applyFilters);
+    _searchController.addListener(() {
+      if (mounted) {
+        setState(() {
+          // Trigger rebuild when search text changes
+        });
+      }
+    });
   }
 
   @override
@@ -61,28 +49,68 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
     );
   }
 
-  void _applyFilters() {
-    setState(() {
-      _filteredOrders = _orders.where((order) {
-        // Search filter
-        final searchQuery = _searchController.text.toLowerCase();
-        final matchesSearch = searchQuery.isEmpty ||
-            (order['id'] as String).toLowerCase().contains(searchQuery) ||
-            (order['customerName'] as String).toLowerCase().contains(searchQuery) ||
-            (order['customerEmail'] as String).toLowerCase().contains(searchQuery);
+  String _formatDate(DateTime date) {
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+  }
 
-        // Status filter
-        final matchesStatus = _selectedStatus == null || order['status'] == _selectedStatus;
+  List<OrderModel> _getFilteredOrders(List<OrderModel> orders) {
+    return orders.where((order) {
+      // Search filter
+      final searchQuery = _searchController.text.toLowerCase();
+      final matchesSearch = searchQuery.isEmpty ||
+          order.orderCode.toLowerCase().contains(searchQuery) ||
+          order.fullName.toLowerCase().contains(searchQuery) ||
+          order.phone.toLowerCase().contains(searchQuery);
 
-        // Date range filter (simplified - can be enhanced)
-        final matchesDate = _selectedDateRange == null || true; // TODO: Implement date range
+      // Status filter
+      final matchesStatus = _selectedStatus == null || order.status == _selectedStatus;
 
-        return matchesSearch && matchesStatus && matchesDate;
-      }).toList();
+      // Date range filter (simplified - can be enhanced)
+      final matchesDate = _selectedDateRange == null || true; // TODO: Implement date range
 
-      // Apply sorting
-      _sortOrders(_sortColumnIndex, _sortAscending);
+      return matchesSearch && matchesStatus && matchesDate;
+    }).toList();
+  }
+
+  List<OrderModel> _getSortedOrders(List<OrderModel> orders, int columnIndex, bool ascending) {
+    final sorted = List<OrderModel>.from(orders);
+    sorted.sort((a, b) {
+      switch (columnIndex) {
+        case 0: // Order Code
+          return ascending
+              ? a.orderCode.compareTo(b.orderCode)
+              : b.orderCode.compareTo(a.orderCode);
+        case 1: // Customer Name
+          return ascending
+              ? a.fullName.compareTo(b.fullName)
+              : b.fullName.compareTo(a.fullName);
+        case 2: // Products
+          final aCount = a.items.length;
+          final bCount = b.items.length;
+          return ascending
+              ? aCount.compareTo(bCount)
+              : bCount.compareTo(aCount);
+        case 3: // Total
+          return ascending
+              ? a.total.compareTo(b.total)
+              : b.total.compareTo(a.total);
+        case 4: // Payment Method
+          return ascending
+              ? a.paymentMethod.name.compareTo(b.paymentMethod.name)
+              : b.paymentMethod.name.compareTo(a.paymentMethod.name);
+        case 5: // Status
+          return ascending
+              ? a.status.adminDisplayName.compareTo(b.status.adminDisplayName)
+              : b.status.adminDisplayName.compareTo(a.status.adminDisplayName);
+        case 6: // Created At
+          return ascending
+              ? a.createdAt.compareTo(b.createdAt)
+              : b.createdAt.compareTo(a.createdAt);
+        default:
+          return 0;
+      }
     });
+    return sorted;
   }
 
   void _clearFilters() {
@@ -90,51 +118,34 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
       _searchController.clear();
       _selectedStatus = null;
       _selectedDateRange = null;
-      _applyFilters();
     });
   }
 
-  void _sortOrders(int columnIndex, bool ascending) {
+  void _handleSort(int columnIndex, bool ascending) {
     setState(() {
       _sortColumnIndex = columnIndex;
       _sortAscending = ascending;
-
-      _sortedOrders = List.from(_filteredOrders);
-      _sortedOrders.sort((a, b) {
-        switch (columnIndex) {
-          case 0: // ID
-            return ascending
-                ? (a['id'] as String).compareTo(b['id'] as String)
-                : (b['id'] as String).compareTo(a['id'] as String);
-          case 1: // Customer Name
-            return ascending
-                ? (a['customerName'] as String).compareTo(b['customerName'] as String)
-                : (b['customerName'] as String).compareTo(a['customerName'] as String);
-          case 2: // Products
-            return ascending
-                ? (a['products'] as String).compareTo(b['products'] as String)
-                : (b['products'] as String).compareTo(a['products'] as String);
-          case 3: // Total
-            return ascending
-                ? (a['total'] as int).compareTo(b['total'] as int)
-                : (b['total'] as int).compareTo(a['total'] as int);
-          case 4: // Status
-            return ascending
-                ? (a['status'] as String).compareTo(b['status'] as String)
-                : (b['status'] as String).compareTo(a['status'] as String);
-          case 5: // Payment Method
-            return ascending
-                ? (a['paymentMethod'] as String).compareTo(b['paymentMethod'] as String)
-                : (b['paymentMethod'] as String).compareTo(a['paymentMethod'] as String);
-          case 6: // Created At
-            return ascending
-                ? (a['createdAt'] as String).compareTo(b['createdAt'] as String)
-                : (b['createdAt'] as String).compareTo(a['createdAt'] as String);
-          default:
-            return 0;
-        }
-      });
     });
+  }
+
+  void _handleStatusUpdate(String orderId, OrderStatus newStatus) {
+    setState(() {
+      final index = _allOrders.indexWhere((o) => o.id == orderId);
+      if (index != -1) {
+        _allOrders[index] = _allOrders[index].copyWith(
+          status: newStatus,
+          updatedAt: DateTime.now(),
+        );
+      }
+    });
+  }
+
+  bool _listEquals(List<OrderModel> a, List<OrderModel> b) {
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i].id != b[i].id) return false;
+    }
+    return true;
   }
 
   @override
@@ -142,117 +153,194 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
     final isMobile = ResponsiveBreakpoints.of(context).isMobile;
     final isTablet = ResponsiveBreakpoints.of(context).isTablet;
 
-    if (isMobile) {
-      return _MobileOrdersView(
-        orders: _sortedOrders,
-        searchController: _searchController,
-        selectedStatus: _selectedStatus,
-        selectedDateRange: _selectedDateRange,
-        onStatusChanged: (value) {
-          setState(() {
-            _selectedStatus = value;
-            _applyFilters();
-          });
+    // Show loading only on initial load
+    if (_allOrders.isEmpty) {
+      return StreamBuilder<List<OrderModel>>(
+        stream: _orderService.getAllOrders(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error_outline, size: 64, color: Colors.red[400]),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Lỗi khi tải đơn hàng',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    snapshot.error.toString(),
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            );
+          }
+
+          if (snapshot.hasData) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                setState(() {
+                  _allOrders = snapshot.data!;
+                });
+              }
+            });
+          }
+
+          return const Center(child: CircularProgressIndicator());
         },
-        onDateRangeChanged: (value) {
-          setState(() {
-            _selectedDateRange = value;
-            _applyFilters();
-          });
-        },
-        onClearFilters: _clearFilters,
-        onSort: _sortOrders,
-        sortColumnIndex: _sortColumnIndex,
-        sortAscending: _sortAscending,
-        formatPrice: _formatPrice,
       );
     }
 
-    return Padding(
-      padding: EdgeInsets.all(isTablet ? 16 : 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Quản lý đơn hàng',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: isTablet ? 22 : 28,
-                    ),
-              ),
-              ElevatedButton.icon(
-                onPressed: () {
-                  // TODO: Export orders
-                },
-                icon: const Icon(Icons.download),
-                label: Text(isTablet ? 'Xuất' : 'Xuất Excel'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          // Search and Filter
-          _OrdersSearchAndFilterBar(
+    // Use cached orders for filtering/sorting
+    final filteredOrders = _getFilteredOrders(_allOrders);
+    final sortedOrders = _getSortedOrders(filteredOrders, _sortColumnIndex, _sortAscending);
+
+    return Stack(
+      children: [
+        // Main UI
+        if (isMobile)
+          _MobileOrdersView(
+            orders: sortedOrders,
             searchController: _searchController,
             selectedStatus: _selectedStatus,
             selectedDateRange: _selectedDateRange,
             onStatusChanged: (value) {
               setState(() {
                 _selectedStatus = value;
-                _applyFilters();
               });
             },
             onDateRangeChanged: (value) {
               setState(() {
                 _selectedDateRange = value;
-                _applyFilters();
               });
             },
             onClearFilters: _clearFilters,
-            isTablet: isTablet,
-          ),
-          const SizedBox(height: 24),
-          // Stats
-          _OrdersStats(orders: _sortedOrders, isTablet: isTablet, formatPrice: _formatPrice),
-          const SizedBox(height: 24),
-          // Data Table
-          Expanded(
-            child: Card(
-              elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: _OrdersDataTable(
-                  orders: _sortedOrders,
-                  onSort: _sortOrders,
-                  sortColumnIndex: _sortColumnIndex,
-                  sortAscending: _sortAscending,
-                  rowsPerPage: _rowsPerPage,
-                  onRowsPerPageChanged: (value) {
+            onSort: _handleSort,
+            sortColumnIndex: _sortColumnIndex,
+            sortAscending: _sortAscending,
+            formatPrice: _formatPrice,
+            formatDate: _formatDate,
+          )
+        else
+          Padding(
+            padding: EdgeInsets.all(isTablet ? 16 : 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Quản lý đơn hàng',
+                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontSize: isTablet ? 22 : 28,
+                          ),
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        // TODO: Export orders
+                      },
+                      icon: const Icon(Icons.download),
+                      label: Text(isTablet ? 'Xuất' : 'Xuất Excel'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                // Search and Filter
+                _OrdersSearchAndFilterBar(
+                  searchController: _searchController,
+                  selectedStatus: _selectedStatus,
+                  selectedDateRange: _selectedDateRange,
+                  onStatusChanged: (value) {
                     setState(() {
-                      _rowsPerPage = value ?? 10;
+                      _selectedStatus = value;
                     });
                   },
+                  onDateRangeChanged: (value) {
+                    setState(() {
+                      _selectedDateRange = value;
+                    });
+                  },
+                  onClearFilters: _clearFilters,
+                  isTablet: isTablet,
+                ),
+                const SizedBox(height: 24),
+                // Stats
+                _OrdersStats(
+                  orders: sortedOrders,
                   isTablet: isTablet,
                   formatPrice: _formatPrice,
                 ),
-              ),
+                const SizedBox(height: 24),
+                // Data Table
+                Expanded(
+                  child: Card(
+                    elevation: 2,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                    child: _OrdersDataTable(
+                      orders: sortedOrders,
+                      onSort: _handleSort,
+                      sortColumnIndex: _sortColumnIndex,
+                      sortAscending: _sortAscending,
+                      rowsPerPage: _rowsPerPage,
+                      onRowsPerPageChanged: (value) {
+                        setState(() {
+                          _rowsPerPage = value ?? 10;
+                        });
+                      },
+                      isTablet: isTablet,
+                      formatPrice: _formatPrice,
+                      formatDate: _formatDate,
+                      onStatusUpdated: _handleStatusUpdate,
+                    ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
-      ),
+        // Background stream listener (invisible, only updates state)
+        StreamBuilder<List<OrderModel>>(
+          stream: _orderService.getAllOrders(),
+          builder: (context, snapshot) {
+            if (snapshot.hasData && snapshot.data != null) {
+              final newOrders = snapshot.data!;
+              if (_allOrders.length != newOrders.length ||
+                  !_listEquals(_allOrders, newOrders)) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    setState(() {
+                      _allOrders = newOrders;
+                    });
+                  }
+                });
+              }
+            }
+            return const SizedBox.shrink();
+          },
+        ),
+      ],
     );
   }
 }
 
 class _OrdersStats extends StatelessWidget {
-  final List<Map<String, dynamic>> orders;
+  final List<OrderModel> orders;
   final bool isTablet;
   final String Function(int) formatPrice;
 
@@ -265,11 +353,13 @@ class _OrdersStats extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final totalOrders = orders.length;
-    final pendingOrders = orders.where((o) => o['status'] == 'Chờ xử lý' || o['status'] == 'Đang xử lý').length;
-    final completedOrders = orders.where((o) => o['status'] == 'Đã hoàn thành').length;
+    final pendingOrders = orders.where((o) =>
+        o.status == OrderStatus.pending ||
+        o.status == OrderStatus.processing).length;
+    final completedOrders = orders.where((o) => o.status == OrderStatus.completed).length;
     final totalRevenue = orders
-        .where((o) => o['status'] == 'Đã hoàn thành')
-        .fold<int>(0, (sum, order) => sum + (order['total'] as int));
+        .where((o) => o.status == OrderStatus.completed)
+        .fold<int>(0, (sum, order) => sum + order.total);
 
     return Row(
       children: [
@@ -381,9 +471,9 @@ class _OrderStatCard extends StatelessWidget {
 
 class _OrdersSearchAndFilterBar extends StatelessWidget {
   final TextEditingController searchController;
-  final String? selectedStatus;
+  final OrderStatus? selectedStatus;
   final String? selectedDateRange;
-  final ValueChanged<String?> onStatusChanged;
+  final ValueChanged<OrderStatus?> onStatusChanged;
   final ValueChanged<String?> onDateRangeChanged;
   final VoidCallback onClearFilters;
   final bool isTablet;
@@ -400,10 +490,12 @@ class _OrdersSearchAndFilterBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = ResponsiveBreakpoints.of(context).isMobile;
+
     return Card(
       elevation: 2,
       child: Padding(
-        padding: EdgeInsets.all(isTablet ? 12 : 16),
+        padding: EdgeInsets.all(isMobile ? 12 : (isTablet ? 12 : 16)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -411,7 +503,9 @@ class _OrdersSearchAndFilterBar extends StatelessWidget {
             TextField(
               controller: searchController,
               decoration: InputDecoration(
-                hintText: 'Tìm kiếm theo mã đơn, tên khách hàng, email...',
+                hintText: isMobile
+                    ? 'Tìm kiếm...'
+                    : 'Tìm kiếm theo mã đơn, tên khách hàng, email...',
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: searchController.text.isNotEmpty
                     ? IconButton(
@@ -425,52 +519,59 @@ class _OrdersSearchAndFilterBar extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 contentPadding: EdgeInsets.symmetric(
-                  horizontal: isTablet ? 12 : 16,
-                  vertical: isTablet ? 12 : 16,
+                  horizontal: isMobile ? 12 : (isTablet ? 12 : 16),
+                  vertical: isMobile ? 12 : (isTablet ? 12 : 16),
                 ),
               ),
             ),
             const SizedBox(height: 12),
             // Filters
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
+            if (isMobile)
+              // Mobile: Vertical layout
+              Column(
+                children: [
+                  DropdownButtonFormField<OrderStatus>(
                     value: selectedStatus,
+                    isExpanded: true,
                     decoration: InputDecoration(
                       labelText: 'Trạng thái',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: isTablet ? 12 : 16,
-                        vertical: isTablet ? 12 : 16,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
                       ),
                     ),
-                    items: const [
-                      DropdownMenuItem(value: null, child: Text('Tất cả')),
-                      DropdownMenuItem(value: 'Chờ xử lý', child: Text('Chờ xử lý')),
-                      DropdownMenuItem(value: 'Đã xác nhận', child: Text('Đã xác nhận')),
-                      DropdownMenuItem(value: 'Đang xử lý', child: Text('Đang xử lý')),
-                      DropdownMenuItem(value: 'Đang giao', child: Text('Đang giao')),
-                      DropdownMenuItem(value: 'Đã hoàn thành', child: Text('Đã hoàn thành')),
-                      DropdownMenuItem(value: 'Đã hủy', child: Text('Đã hủy')),
+                    items: [
+                      const DropdownMenuItem<OrderStatus>(
+                        value: null,
+                        child: Text('Tất cả'),
+                      ),
+                      ...OrderStatus.values.map((status) {
+                        return DropdownMenuItem<OrderStatus>(
+                          value: status,
+                          child: Text(
+                            status.adminDisplayName,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      }),
                     ],
                     onChanged: onStatusChanged,
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
                     value: selectedDateRange,
+                    isExpanded: true,
                     decoration: InputDecoration(
                       labelText: 'Khoảng thời gian',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: isTablet ? 12 : 16,
-                        vertical: isTablet ? 12 : 16,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
                       ),
                     ),
                     items: const [
@@ -482,19 +583,94 @@ class _OrdersSearchAndFilterBar extends StatelessWidget {
                     ],
                     onChanged: onDateRangeChanged,
                   ),
-                ),
-                const SizedBox(width: 12),
-                if (selectedStatus != null || selectedDateRange != null || searchController.text.isNotEmpty)
-                  IconButton(
-                    icon: const Icon(Icons.clear_all),
-                    tooltip: 'Xóa bộ lọc',
-                    onPressed: onClearFilters,
-                    style: IconButton.styleFrom(
-                      backgroundColor: Colors.grey[200],
+                  if (selectedStatus != null ||
+                      selectedDateRange != null ||
+                      searchController.text.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.clear_all, size: 18),
+                        label: const Text('Xóa bộ lọc'),
+                        onPressed: onClearFilters,
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              )
+            else
+              // Desktop/Tablet: Horizontal layout
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<OrderStatus>(
+                      value: selectedStatus,
+                      decoration: InputDecoration(
+                        labelText: 'Trạng thái',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: isTablet ? 12 : 16,
+                          vertical: isTablet ? 12 : 16,
+                        ),
+                      ),
+                      items: [
+                        const DropdownMenuItem<OrderStatus>(
+                          value: null,
+                          child: Text('Tất cả'),
+                        ),
+                        ...OrderStatus.values.map((status) {
+                          return DropdownMenuItem<OrderStatus>(
+                            value: status,
+                            child: Text(status.adminDisplayName),
+                          );
+                        }),
+                      ],
+                      onChanged: onStatusChanged,
                     ),
                   ),
-              ],
-            ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: selectedDateRange,
+                      decoration: InputDecoration(
+                        labelText: 'Khoảng thời gian',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: isTablet ? 12 : 16,
+                          vertical: isTablet ? 12 : 16,
+                        ),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: null, child: Text('Tất cả')),
+                        DropdownMenuItem(value: 'today', child: Text('Hôm nay')),
+                        DropdownMenuItem(value: 'week', child: Text('Tuần này')),
+                        DropdownMenuItem(value: 'month', child: Text('Tháng này')),
+                        DropdownMenuItem(value: 'year', child: Text('Năm nay')),
+                      ],
+                      onChanged: onDateRangeChanged,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  if (selectedStatus != null ||
+                      selectedDateRange != null ||
+                      searchController.text.isNotEmpty)
+                    IconButton(
+                      icon: const Icon(Icons.clear_all),
+                      tooltip: 'Xóa bộ lọc',
+                      onPressed: onClearFilters,
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.grey[200],
+                      ),
+                    ),
+                ],
+              ),
           ],
         ),
       ),
@@ -503,7 +679,7 @@ class _OrdersSearchAndFilterBar extends StatelessWidget {
 }
 
 class _OrdersDataTable extends StatelessWidget {
-  final List<Map<String, dynamic>> orders;
+  final List<OrderModel> orders;
   final Function(int, bool) onSort;
   final int sortColumnIndex;
   final bool sortAscending;
@@ -511,6 +687,8 @@ class _OrdersDataTable extends StatelessWidget {
   final ValueChanged<int?>? onRowsPerPageChanged;
   final bool isTablet;
   final String Function(int) formatPrice;
+  final String Function(DateTime) formatDate;
+  final Function(String orderId, OrderStatus newStatus)? onStatusUpdated;
 
   const _OrdersDataTable({
     required this.orders,
@@ -521,6 +699,8 @@ class _OrdersDataTable extends StatelessWidget {
     this.onRowsPerPageChanged,
     required this.isTablet,
     required this.formatPrice,
+    required this.formatDate,
+    this.onStatusUpdated,
   });
 
   @override
@@ -579,18 +759,20 @@ class _OrdersDataTable extends StatelessWidget {
         orders: orders,
         context: context,
         onView: (order) {
-          // TODO: View order details
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Xem chi tiết: ${order['id']}')),
+          showDialog(
+            context: context,
+            builder: (context) => OrderDetailDialog(order: order),
           );
         },
         onEdit: (order) {
           // TODO: Edit order
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Chỉnh sửa: ${order['id']}')),
+            SnackBar(content: Text('Chỉnh sửa: ${order.orderCode}')),
           );
         },
+        onStatusUpdated: onStatusUpdated,
         formatPrice: formatPrice,
+        formatDate: formatDate,
       ),
       empty: Center(
         child: Padding(
@@ -613,48 +795,71 @@ class _OrdersDataTable extends StatelessWidget {
 }
 
 class _OrdersDataSource extends DataTableSource {
-  final List<Map<String, dynamic>> orders;
+  final List<OrderModel> orders;
   final BuildContext context;
-  final Function(Map<String, dynamic>) onView;
-  final Function(Map<String, dynamic>) onEdit;
+  final Function(OrderModel) onView;
+  final Function(OrderModel) onEdit;
+  final Function(String orderId, OrderStatus newStatus)? onStatusUpdated;
   final String Function(int) formatPrice;
+  final String Function(DateTime) formatDate;
+  final OrderService _orderService = OrderService();
+  final Map<String, bool> _updatingStatus = {};
 
   _OrdersDataSource({
     required this.orders,
     required this.context,
     required this.onView,
     required this.onEdit,
+    this.onStatusUpdated,
     required this.formatPrice,
+    required this.formatDate,
   });
 
-  Color getStatusColor(String status) {
-    switch (status) {
-      case 'Chờ xử lý':
-        return Colors.orange;
-      case 'Đã xác nhận':
-        return Colors.teal;
-      case 'Đang xử lý':
-        return Colors.blue;
-      case 'Đang giao':
-        return Colors.purple;
-      case 'Đã hoàn thành':
-        return Colors.green;
-      case 'Đã hủy':
-        return Colors.red;
-      default:
-        return Colors.grey;
+  Future<void> _updateOrderStatus(OrderModel order, OrderStatus newStatus) async {
+    if (_updatingStatus[order.id] == true) return; // Already updating
+
+    // Update local state immediately for instant UI feedback
+    onStatusUpdated?.call(order.id, newStatus);
+
+    setState(() {
+      _updatingStatus[order.id] = true;
+    });
+    notifyListeners();
+
+    try {
+      await _orderService.updateOrderStatus(order.id, newStatus);
+      
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Đã cập nhật trạng thái đơn hàng ${order.orderCode}'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      // Revert local state on error
+      onStatusUpdated?.call(order.id, order.status);
+      
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      setState(() {
+        _updatingStatus[order.id] = false;
+      });
+      notifyListeners();
     }
   }
 
-  Color getPaymentMethodColor(String paymentMethod) {
-    switch (paymentMethod) {
-      case 'Tiền mặt':
-        return Colors.orange;
-      case 'Chuyển khoản':
-        return Colors.blue;
-      default:
-        return Colors.grey;
-    }
+  void setState(VoidCallback fn) {
+    fn();
+    notifyListeners();
   }
 
   @override
@@ -662,14 +867,12 @@ class _OrdersDataSource extends DataTableSource {
     if (index >= orders.length) return null;
 
     final order = orders[index];
-    final status = order['status'] as String;
-    final statusColor = getStatusColor(status);
 
     return DataRow2(
       cells: [
         DataCell(
           Text(
-            order['id'] as String,
+            order.orderCode,
             style: const TextStyle(
               fontWeight: FontWeight.w600,
               fontFamily: 'monospace',
@@ -683,12 +886,12 @@ class _OrdersDataSource extends DataTableSource {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                order['customerName'] as String,
+                order.fullName,
                 style: const TextStyle(fontWeight: FontWeight.w500),
                 overflow: TextOverflow.ellipsis,
               ),
               Text(
-                order['customerEmail'] as String,
+                order.phone,
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.grey[600],
@@ -698,10 +901,10 @@ class _OrdersDataSource extends DataTableSource {
             ],
           ),
         ),
-        DataCell(Text(order['products'] as String)),
+        DataCell(Text('${order.items.length} sản phẩm')),
         DataCell(
           Text(
-            '${formatPrice(order['total'] as int)} đ',
+            '${formatPrice(order.total)} đ',
             style: TextStyle(
               fontWeight: FontWeight.w600,
               color: Theme.of(context).colorScheme.primary,
@@ -711,8 +914,9 @@ class _OrdersDataSource extends DataTableSource {
         DataCell(
           Builder(
             builder: (context) {
-              final paymentMethod = order['paymentMethod'] as String;
-              final paymentColor = getPaymentMethodColor(paymentMethod);
+              final paymentColor = order.paymentMethod == PaymentMethod.cod
+                  ? Colors.orange
+                  : Colors.blue;
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
@@ -720,9 +924,11 @@ class _OrdersDataSource extends DataTableSource {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  paymentMethod,
+                  order.paymentMethod.name,
                   style: TextStyle(
-                    color: paymentMethod == 'Tiền mặt' ? Colors.orange[700] : Colors.blue[700],
+                    color: order.paymentMethod == PaymentMethod.cod
+                        ? Colors.orange[700]
+                        : Colors.blue[700],
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
@@ -732,23 +938,127 @@ class _OrdersDataSource extends DataTableSource {
           ),
         ),
         DataCell(
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              status,
-              style: TextStyle(
-                color: statusColor,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
+          _updatingStatus[order.id] == true
+              ? SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(order.status.color),
+                  ),
+                )
+              : order.status == OrderStatus.cancelled
+                  ? Tooltip(
+                      message: 'Đơn hàng đã hủy không thể cập nhật trạng thái',
+                      child: Container(
+                        constraints: const BoxConstraints(minWidth: 120),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: order.status.color.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: order.status.color.withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: order.status.color,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                order.status.adminDisplayName,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: order.status.color,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.lock,
+                              size: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : Container(
+                      constraints: const BoxConstraints(minWidth: 120),
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: order.status.color.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: order.status.color.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<OrderStatus>(
+                          value: order.status,
+                          isDense: true,
+                          isExpanded: true,
+                          icon: Icon(
+                            Icons.arrow_drop_down,
+                            size: 16,
+                            color: order.status.color,
+                          ),
+                          style: TextStyle(
+                            color: order.status.color,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          items: OrderStatus.values.map((status) {
+                            return DropdownMenuItem<OrderStatus>(
+                              value: status,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      color: status.color,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Flexible(
+                                    child: Text(
+                                      status.adminDisplayName,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: status.color,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (OrderStatus? newStatus) {
+                            if (newStatus != null && newStatus != order.status) {
+                              _updateOrderStatus(order, newStatus);
+                            }
+                          },
+                        ),
+                      ),
+                    ),
         ),
-        DataCell(Text(order['createdAt'] as String)),
+        DataCell(Text(formatDate(order.createdAt))),
         DataCell(
           Row(
             mainAxisSize: MainAxisSize.min,
@@ -783,17 +1093,18 @@ class _OrdersDataSource extends DataTableSource {
 }
 
 class _MobileOrdersView extends StatelessWidget {
-  final List<Map<String, dynamic>> orders;
+  final List<OrderModel> orders;
   final TextEditingController searchController;
-  final String? selectedStatus;
+  final OrderStatus? selectedStatus;
   final String? selectedDateRange;
-  final ValueChanged<String?> onStatusChanged;
+  final ValueChanged<OrderStatus?> onStatusChanged;
   final ValueChanged<String?> onDateRangeChanged;
   final VoidCallback onClearFilters;
   final Function(int, bool) onSort;
   final int sortColumnIndex;
   final bool sortAscending;
   final String Function(int) formatPrice;
+  final String Function(DateTime) formatDate;
 
   const _MobileOrdersView({
     required this.orders,
@@ -807,37 +1118,8 @@ class _MobileOrdersView extends StatelessWidget {
     required this.sortColumnIndex,
     required this.sortAscending,
     required this.formatPrice,
+    required this.formatDate,
   });
-
-  Color getStatusColor(String status) {
-    switch (status) {
-      case 'Chờ xử lý':
-        return Colors.orange;
-      case 'Đã xác nhận':
-        return Colors.teal;
-      case 'Đang xử lý':
-        return Colors.blue;
-      case 'Đang giao':
-        return Colors.purple;
-      case 'Đã hoàn thành':
-        return Colors.green;
-      case 'Đã hủy':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  Color getPaymentMethodColor(String paymentMethod) {
-    switch (paymentMethod) {
-      case 'Tiền mặt':
-        return Colors.orange;
-      case 'Chuyển khoản':
-        return Colors.blue;
-      default:
-        return Colors.grey;
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -867,8 +1149,6 @@ class _MobileOrdersView extends StatelessWidget {
           const SizedBox(height: 16),
           // Mobile list view
           ...orders.map((order) {
-            final status = order['status'] as String;
-            final statusColor = getStatusColor(status);
             return Card(
               margin: const EdgeInsets.only(bottom: 12),
               child: Padding(
@@ -880,7 +1160,7 @@ class _MobileOrdersView extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          order['id'] as String,
+                          order.orderCode,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontFamily: 'monospace',
@@ -889,13 +1169,13 @@ class _MobileOrdersView extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: statusColor.withOpacity(0.1),
+                            color: order.status.color.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            status,
+                            order.status.adminDisplayName,
                             style: TextStyle(
-                              color: statusColor,
+                              color: order.status.color,
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                             ),
@@ -905,12 +1185,12 @@ class _MobileOrdersView extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      order['customerName'] as String,
+                      order.fullName,
                       style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      order['customerEmail'] as String,
+                      order.phone,
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.grey[600],
@@ -921,38 +1201,37 @@ class _MobileOrdersView extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          '${formatPrice(order['total'] as int)} đ',
+                          '${formatPrice(order.total)} đ',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             color: Theme.of(context).colorScheme.primary,
                           ),
                         ),
-                        Builder(
-                          builder: (context) {
-                            final paymentMethod = order['paymentMethod'] as String;
-                            final paymentColor = getPaymentMethodColor(paymentMethod);
-                            return Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: paymentColor.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                paymentMethod,
-                                style: TextStyle(
-                                  color: paymentMethod == 'Tiền mặt' ? Colors.orange[700] : Colors.blue[700],
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            );
-                          },
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: (order.paymentMethod == PaymentMethod.cod
+                                    ? Colors.orange
+                                    : Colors.blue)
+                                .withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            order.paymentMethod.name,
+                            style: TextStyle(
+                              color: order.paymentMethod == PaymentMethod.cod
+                                  ? Colors.orange[700]
+                                  : Colors.blue[700],
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      order['createdAt'] as String,
+                      formatDate(order.createdAt),
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.grey[600],
@@ -966,7 +1245,10 @@ class _MobileOrdersView extends StatelessWidget {
                           icon: const Icon(Icons.visibility, size: 16),
                           label: const Text('Xem'),
                           onPressed: () {
-                            // TODO: View order
+                            showDialog(
+                              context: context,
+                              builder: (context) => OrderDetailDialog(order: order),
+                            );
                           },
                         ),
                         TextButton.icon(
@@ -974,6 +1256,9 @@ class _MobileOrdersView extends StatelessWidget {
                           label: const Text('Sửa'),
                           onPressed: () {
                             // TODO: Edit order
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Chỉnh sửa: ${order.orderCode}')),
+                            );
                           },
                         ),
                       ],

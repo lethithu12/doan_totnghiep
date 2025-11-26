@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'products_search_and_filter_bar.dart';
+import 'view_product_dialog.dart';
 import '../../../models/product_model.dart';
 import '../../../models/category_model.dart';
 
@@ -18,6 +19,7 @@ class MobileProductsView extends StatelessWidget {
   final int sortColumnIndex;
   final bool sortAscending;
   final String Function(int) formatPrice;
+  final Function(ProductModel)? onDelete;
 
   const MobileProductsView({
     super.key,
@@ -33,6 +35,7 @@ class MobileProductsView extends StatelessWidget {
     required this.sortColumnIndex,
     required this.sortAscending,
     required this.formatPrice,
+    this.onDelete,
   });
 
   String? _getCategoryName(String categoryId) {
@@ -264,7 +267,43 @@ class MobileProductsView extends StatelessWidget {
                         ),
                       ],
                       onSelected: (value) {
-                        // TODO: Handle actions
+                        if (value == 'view') {
+                          showDialog(
+                            context: context,
+                            builder: (context) => ViewProductDialog(
+                              product: product,
+                              categories: categories,
+                              formatPrice: formatPrice,
+                              isMobile: true,
+                            ),
+                          );
+                        } else if (value == 'edit') {
+                          context.go('/admin/products/${product.id}/edit');
+                        } else if (value == 'delete' && onDelete != null) {
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Xác nhận xóa'),
+                              content: Text('Bạn có chắc chắn muốn xóa sản phẩm "${product.name}"?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  child: const Text('Hủy'),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                    onDelete!(product);
+                                  },
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: Colors.red,
+                                  ),
+                                  child: const Text('Xóa'),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
                       },
                     ),
                   ],

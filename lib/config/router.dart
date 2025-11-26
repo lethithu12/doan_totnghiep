@@ -7,12 +7,15 @@ import '../../pages/orders_page.dart';
 import '../../pages/profile_page.dart';
 import '../../pages/product_detail_page.dart';
 import '../../pages/login_page.dart';
+import '../../pages/checkout_page.dart';
 import '../../pages/admin/admin_dashboard_page.dart';
 import '../../pages/admin/admin_products_page.dart';
 import '../../pages/admin/admin_product_form_page.dart';
 import '../../pages/admin/admin_categories_page.dart';
 import '../../pages/admin/admin_orders_page.dart';
+import '../../pages/admin/admin_reviews_page.dart';
 import '../../pages/admin/admin_users_page.dart';
+import '../../pages/admin/admin_home_sections_page.dart';
 import '../../pages/admin/admin_analytics_page.dart';
 import '../../pages/admin/admin_settings_page.dart';
 import '../../widgets/shell_layout.dart';
@@ -30,6 +33,14 @@ final GoRouter appRouter = GoRouter(
           path: '/',
           name: 'home',
           builder: (context, state) => const HomePage(),
+        ),
+        GoRoute(
+          path: '/products/:id',
+          name: 'product-detail',
+          builder: (context, state) {
+            final id = state.pathParameters['id'] ?? '';
+            return ProductDetailPage(productId: id);
+          },
         ),
         GoRoute(
           path: '/products',
@@ -57,12 +68,9 @@ final GoRouter appRouter = GoRouter(
           builder: (context, state) => const ProfilePage(),
         ),
         GoRoute(
-          path: '/product/:id',
-          name: 'product-detail',
-          builder: (context, state) {
-            final id = state.pathParameters['id'] ?? '';
-            return ProductDetailPage(productId: id);
-          },
+          path: '/checkout',
+          name: 'checkout',
+          builder: (context, state) => const CheckoutPage(),
         ),
       ],
     ),
@@ -110,9 +118,19 @@ final GoRouter appRouter = GoRouter(
           builder: (context, state) => const AdminOrdersPage(),
         ),
         GoRoute(
+          path: '/admin/reviews',
+          name: 'admin-reviews',
+          builder: (context, state) => const AdminReviewsPage(),
+        ),
+        GoRoute(
           path: '/admin/users',
           name: 'admin-users',
           builder: (context, state) => const AdminUsersPage(),
+        ),
+        GoRoute(
+          path: '/admin/home-sections',
+          name: 'admin-home-sections',
+          builder: (context, state) => const AdminHomeSectionsPage(),
         ),
         GoRoute(
           path: '/admin/analytics',

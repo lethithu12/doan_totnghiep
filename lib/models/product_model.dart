@@ -15,6 +15,7 @@ class ProductModel {
   final List<String>? versions; // Danh sách phiên bản ['128GB', '256GB', ...]
   final List<Map<String, dynamic>>? colors; // Danh sách màu sắc [{'name': 'Đỏ', 'hex': '#FF0000'}, ...]
   final List<Map<String, dynamic>>? options; // Danh sách options [{'version': '128GB', 'colorName': 'Đỏ', 'colorHex': '#FF0000', 'originalPrice': 15000000, 'discount': 10}, ...]
+  final List<Map<String, String>>? specifications; // Thông số kỹ thuật [{'label': 'Màn hình', 'value': '6.7 inch'}, ...]
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -35,6 +36,7 @@ class ProductModel {
     this.versions,
     this.colors,
     this.options,
+    this.specifications,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -65,6 +67,7 @@ class ProductModel {
       'versions': versions,
       'colors': colors,
       'options': options,
+      'specifications': specifications,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -101,6 +104,11 @@ class ProductModel {
               (map['options'] as List).map((e) => Map<String, dynamic>.from(e as Map)),
             )
           : null,
+      specifications: map['specifications'] != null
+          ? List<Map<String, String>>.from(
+              (map['specifications'] as List).map((e) => Map<String, String>.from(e as Map)),
+            )
+          : null,
       createdAt: DateTime.parse(map['createdAt'] as String),
       updatedAt: DateTime.parse(map['updatedAt'] as String),
     );
@@ -124,6 +132,7 @@ class ProductModel {
     List<String>? versions,
     List<Map<String, dynamic>>? colors,
     List<Map<String, dynamic>>? options,
+    List<Map<String, String>>? specifications,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -144,6 +153,7 @@ class ProductModel {
       versions: versions ?? this.versions,
       colors: colors ?? this.colors,
       options: options ?? this.options,
+      specifications: specifications ?? this.specifications,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

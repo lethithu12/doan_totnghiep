@@ -2,6 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:responsive_framework/responsive_framework.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../../../services/banner_service.dart';
+import '../../../models/banner_model.dart';
 
 class HeroBanner extends StatefulWidget {
   const HeroBanner({super.key});
@@ -12,32 +15,16 @@ class HeroBanner extends StatefulWidget {
 
 class _HeroBannerState extends State<HeroBanner> {
   final PageController _pageController = PageController();
+  final BannerService _bannerService = BannerService();
   int _currentPage = 0;
   Timer? _timer;
-
-  // Mock banner data - có thể thay bằng ảnh thật sau
-  final List<Map<String, dynamic>> banners = [
-    {
-      'title': 'Đoan Electronic',
-      'subtitle': 'Cửa hàng điện tử uy tín - Giá tốt nhất thị trường',
-      'gradient': [Color(0xFFD70018), Color(0xFFFF5252)],
-    },
-    {
-      'title': 'Khuyến mãi đặc biệt',
-      'subtitle': 'Giảm giá lên đến 50% cho tất cả sản phẩm',
-      'gradient': [Color(0xFFD70018), Color(0xFFFF8A80)],
-    },
-    {
-      'title': 'Sản phẩm mới',
-      'subtitle': 'Cập nhật những mẫu điện thoại và laptop mới nhất',
-      'gradient': [Color(0xFFD70018), Color(0xFFFFCDD2)],
-    },
-  ];
+  List<BannerModel>? _banners;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _startAutoPlay();
+    _loadBanners();
   }
 
   @override
@@ -47,10 +34,34 @@ class _HeroBannerState extends State<HeroBanner> {
     super.dispose();
   }
 
-  void _startAutoPlay() {
+  Future<void> _loadBanners() async {
+    try {
+      final banners = await _bannerService.getActiveBannersOnce();
+      if (mounted) {
+        setState(() {
+          _banners = banners;
+          _isLoading = false;
+        });
+        if (banners.isNotEmpty) {
+          _startAutoPlay(banners.length);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _startAutoPlay(int bannerCount) {
+    if (bannerCount <= 1) return; // Không cần auto play nếu chỉ có 1 banner
+    
+    _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      if (_pageController.hasClients) {
-        if (_currentPage < banners.length - 1) {
+      if (_pageController.hasClients && bannerCount > 1 && mounted) {
+        if (_currentPage < bannerCount - 1) {
           _currentPage++;
         } else {
           _currentPage = 0;
@@ -68,6 +79,19 @@ class _HeroBannerState extends State<HeroBanner> {
   Widget build(BuildContext context) {
     final isMobile = ResponsiveBreakpoints.of(context).isMobile;
     
+    if (_isLoading) {
+      return Container(
+        width: double.infinity,
+        height: isMobile ? 200 : 500,
+        color: Colors.grey[200],
+        child: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_banners == null || _banners!.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     return Container(
       width: double.infinity,
       height: isMobile ? 200 : 500,
@@ -80,81 +104,59 @@ class _HeroBannerState extends State<HeroBanner> {
                 _currentPage = index;
               });
             },
-            itemCount: banners.length,
+            itemCount: _banners!.length,
             itemBuilder: (context, index) {
-              final banner = banners[index];
-              return Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: banner['gradient'] as List<Color>,
+              final banner = _banners![index];
+              return InkWell(
+                onTap: banner.link != null && banner.link!.isNotEmpty
+                    ? () {
+                        // Có thể mở link hoặc navigate
+                        if (banner.link!.startsWith('/')) {
+                          context.go(banner.link!);
+                        } else {
+                          // Mở URL external nếu cần
+                        }
+                      }
+                    : null,
+                child: CachedNetworkImage(
+                  imageUrl: banner.imageUrl,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => Container(
+                    color: Colors.grey[200],
+                    child: const Center(child: CircularProgressIndicator()),
                   ),
-                ),
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          banner['title'] as String,
-                          style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          banner['subtitle'] as String,
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                color: Colors.white.withValues(alpha: 0.9),
-                              ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 32),
-                        ElevatedButton(
-                          onPressed: () => context.go('/products'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: Theme.of(context).colorScheme.primary,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 32,
-                              vertical: 16,
-                            ),
-                          ),
-                          child: const Text('Xem sản phẩm'),
-                        ),
-                      ],
-                    ),
+                  errorWidget: (context, url, error) => Container(
+                    color: Colors.grey[200],
+                    child: const Icon(Icons.error, color: Colors.red),
                   ),
                 ),
               );
             },
           ),
           // Indicator
-          Positioned(
-            bottom: 20,
-            left: 0,
-            right: 0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                banners.length,
-                (index) => Container(
-                  width: 10,
-                  height: 10,
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _currentPage == index
-                        ? Colors.white
-                        : Colors.white.withValues(alpha: 0.5),
+          if (_banners!.length > 1)
+            Positioned(
+              bottom: 20,
+              left: 0,
+              right: 0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(
+                  _banners!.length,
+                  (index) => Container(
+                    width: 10,
+                    height: 10,
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _currentPage == index
+                          ? Colors.white
+                          : Colors.white.withValues(alpha: 0.5),
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );

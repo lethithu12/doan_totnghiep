@@ -8,6 +8,7 @@ import '../services/cart_service.dart';
 import '../services/auth_service.dart';
 import '../models/product_model.dart';
 import '../models/cart_model.dart';
+import '../config/colors.dart';
 import '../widgets/pages/product_detail/product_description.dart';
 
 class ProductDetailPage extends StatefulWidget {
@@ -218,6 +219,82 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     }
   }
 
+  Future<void> _handleBuyNow() async {
+    // Check if user is logged in
+    if (!_authService.isLoggedIn) {
+      if (mounted) {
+        context.push('/login');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Vui lòng đăng nhập để mua hàng'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+      return;
+    }
+
+    if (_product == null) return;
+
+    setState(() {
+      _isAddingToCart = true;
+    });
+
+    try {
+      final product = _product!;
+      final productImages = _getProductImages(product);
+      final currentPrice = _getCurrentPrice(product);
+      final currentOriginalPrice = _getCurrentOriginalPrice(product);
+
+      // Tạo cart item (không thêm vào cart, chỉ dùng để checkout)
+      final cartItem = CartItemModel(
+        productId: product.id,
+        productName: product.name,
+        imageUrl: productImages.isNotEmpty ? productImages.first : null,
+        price: currentPrice,
+        originalPrice: currentOriginalPrice,
+        quantity: 1,
+        selectedVersion: selectedVersion,
+        selectedColor: selectedColor,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      // Thêm vào cart để có id (cần id để xóa sau khi đặt hàng)
+      await _cartService.addToCart(cartItem);
+      
+      // Lấy lại item vừa thêm để có id
+      final cartItems = await _cartService.getCartItemsOnce();
+      final addedItem = cartItems.firstWhere(
+        (item) => item.productId == product.id &&
+            item.selectedVersion == selectedVersion &&
+            item.selectedColor == selectedColor,
+        orElse: () => cartItem,
+      );
+
+      // Điều hướng đến trang checkout với item cụ thể
+      if (mounted) {
+        context.go('/checkout', extra: [addedItem]);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isAddingToCart = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isMobile = ResponsiveBreakpoints.of(context).isMobile;
@@ -232,26 +309,114 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     final thumbnailIconSize = isMobile ? 30.0 : (isTablet ? 35.0 : 40.0);
 
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      return Scaffold(
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppColors.headerBackground.withOpacity(0.03),
+                Colors.white,
+              ],
+            ),
+          ),
+          child: const Center(
+            child: CircularProgressIndicator(),
+          ),
+        ),
       );
     }
 
     if (_error != null || _product == null) {
       return Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 64, color: Colors.red),
-              const SizedBox(height: 16),
-              Text('Lỗi: ${_error ?? "Không tìm thấy sản phẩm"}'),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Quay lại'),
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppColors.headerBackground.withOpacity(0.03),
+                Colors.white,
+              ],
+            ),
+          ),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.red[50],
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.error_outline,
+                      size: 64,
+                      color: Colors.red,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Lỗi',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[800],
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _error ?? "Không tìm thấy sản phẩm",
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 14,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 32),
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.headerBackground,
+                          AppColors.primaryLight,
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.headerBackground.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'Quay lại',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       );
@@ -287,19 +452,29 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                               height: imageHeight,
                               decoration: BoxDecoration(
                                 color: Colors.grey[200],
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
                               ),
                               child: ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(16),
                                 child: productImages.isNotEmpty
                                     ? CachedNetworkImage(
                                         imageUrl: productImages[selectedImageIndex],
                                         fit: BoxFit.contain,
-                                        placeholder: (context, url) => Center(
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            valueColor: AlwaysStoppedAnimation<Color>(
-                                              Theme.of(context).colorScheme.primary,
+                                        placeholder: (context, url) => Container(
+                                          color: Colors.grey[200],
+                                          child: Center(
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor: AlwaysStoppedAnimation<Color>(
+                                                Theme.of(context).colorScheme.primary,
+                                              ),
                                             ),
                                           ),
                                         ),
@@ -336,16 +511,25 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                       margin: const EdgeInsets.only(right: 8),
                                       decoration: BoxDecoration(
                                         color: Colors.grey[200],
-                                        borderRadius: BorderRadius.circular(8),
+                                        borderRadius: BorderRadius.circular(12),
                                         border: Border.all(
                                           color: isSelected
                                               ? Theme.of(context).colorScheme.primary
                                               : Colors.transparent,
-                                          width: 2,
+                                          width: 3,
                                         ),
+                                        boxShadow: isSelected
+                                            ? [
+                                                BoxShadow(
+                                                  color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                                                  blurRadius: 8,
+                                                  offset: const Offset(0, 2),
+                                                ),
+                                              ]
+                                            : null,
                                       ),
                                       child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(8),
+                                        borderRadius: BorderRadius.circular(12),
                                         child: CachedNetworkImage(
                                           imageUrl: productImages[index],
                                           fit: BoxFit.cover,
@@ -411,16 +595,28 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                       ),
                                       const SizedBox(width: 8),
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                         decoration: BoxDecoration(
-                                          color: Colors.red[100],
-                                          borderRadius: BorderRadius.circular(4),
+                                          gradient: LinearGradient(
+                                            colors: [
+                                              Colors.red[600]!,
+                                              Colors.red[700]!,
+                                            ],
+                                          ),
+                                          borderRadius: BorderRadius.circular(6),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.red.withOpacity(0.3),
+                                              blurRadius: 4,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
                                         ),
                                         child: Text(
                                           '-$discount%',
-                                          style: TextStyle(
+                                          style: const TextStyle(
                                             fontSize: 12,
-                                            color: Colors.red[700],
+                                            color: Colors.white,
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),
@@ -471,6 +667,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                           version,
                                           style: TextStyle(
                                             fontSize: 14,
+                                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                                             color: isAvailable ? null : Colors.grey[400],
                                           ),
                                         ),
@@ -496,11 +693,20 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                         : null,
                                     selectedColor: Theme.of(context).colorScheme.primaryContainer,
                                     disabledColor: Colors.grey[200],
-                                    backgroundColor: isAvailable ? null : Colors.grey[100],
+                                    backgroundColor: isAvailable ? Colors.grey[50] : Colors.grey[100],
                                     labelStyle: TextStyle(
                                       color: isSelected && isAvailable
                                           ? Theme.of(context).colorScheme.onPrimaryContainer
                                           : (isAvailable ? null : Colors.grey[400]),
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      side: BorderSide(
+                                        color: isSelected && isAvailable
+                                            ? Theme.of(context).colorScheme.primary
+                                            : Colors.grey[300]!,
+                                        width: isSelected && isAvailable ? 2 : 1,
+                                      ),
                                     ),
                                   );
                                 }).toList(),
@@ -551,9 +757,20 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                             color: _hexToColor(colorHex),
                                             shape: BoxShape.circle,
                                             border: Border.all(
-                                              color: isAvailable ? Colors.grey : Colors.grey[300]!,
-                                              width: 1,
+                                              color: isSelected && isAvailable
+                                                  ? Theme.of(context).colorScheme.primary
+                                                  : (isAvailable ? Colors.grey : Colors.grey[300]!),
+                                              width: isSelected && isAvailable ? 2 : 1,
                                             ),
+                                            boxShadow: isSelected && isAvailable
+                                                ? [
+                                                    BoxShadow(
+                                                      color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                                                      blurRadius: 4,
+                                                      offset: const Offset(0, 2),
+                                                    ),
+                                                  ]
+                                                : null,
                                           ),
                                         ),
                                         const SizedBox(width: 6),
@@ -561,6 +778,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                           colorName,
                                           style: TextStyle(
                                             fontSize: 14,
+                                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                                             color: isAvailable ? null : Colors.grey[400],
                                           ),
                                         ),
@@ -586,11 +804,20 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                         : null,
                                     selectedColor: Theme.of(context).colorScheme.primaryContainer,
                                     disabledColor: Colors.grey[200],
-                                    backgroundColor: isAvailable ? null : Colors.grey[100],
+                                    backgroundColor: isAvailable ? Colors.grey[50] : Colors.grey[100],
                                     labelStyle: TextStyle(
                                       color: isSelected && isAvailable
                                           ? Theme.of(context).colorScheme.onPrimaryContainer
                                           : (isAvailable ? null : Colors.grey[400]),
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      side: BorderSide(
+                                        color: isSelected && isAvailable
+                                            ? Theme.of(context).colorScheme.primary
+                                            : Colors.grey[300]!,
+                                        width: isSelected && isAvailable ? 2 : 1,
+                                      ),
                                     ),
                                   );
                                 }).toList(),
@@ -599,22 +826,58 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                             ],
                             const SizedBox(height: 24),
                             // Nút Mua ngay
-                            SizedBox(
+                            Container(
                               width: double.infinity,
-                              child: ElevatedButton(
-                                onPressed: () {},
-                                style: ElevatedButton.styleFrom(
-                                  padding: const EdgeInsets.all(14),
-                                  backgroundColor: Theme.of(context).colorScheme.primary,
-                                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    AppColors.headerBackground,
+                                    AppColors.primaryLight,
+                                  ],
                                 ),
-                                child: const Text(
-                                  'Mua ngay',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.headerBackground.withOpacity(0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: ElevatedButton(
+                                onPressed: _isAddingToCart ? null : _handleBuyNow,
+                                style: ElevatedButton.styleFrom(
+                                  padding: const EdgeInsets.all(16),
+                                  backgroundColor: Colors.transparent,
+                                  shadowColor: Colors.transparent,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
                                 ),
+                                child: _isAddingToCart
+                                    ? const SizedBox(
+                                        height: 20,
+                                        width: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                        ),
+                                      )
+                                    : const Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.shopping_cart, color: Colors.white, size: 20),
+                                          SizedBox(width: 8),
+                                          Text(
+                                            'Mua ngay',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                               ),
                             ),
                             const SizedBox(height: 12),
@@ -624,25 +887,44 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                               child: OutlinedButton(
                                 onPressed: _isAddingToCart ? null : _handleAddToCart,
                                 style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.all(14),
+                                  padding: const EdgeInsets.all(16),
                                   side: BorderSide(
                                     color: Theme.of(context).colorScheme.primary,
                                     width: 2,
                                   ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                 ),
                                 child: _isAddingToCart
-                                    ? const SizedBox(
+                                    ? SizedBox(
                                         height: 20,
                                         width: 20,
-                                        child: CircularProgressIndicator(strokeWidth: 2),
-                                      )
-                                    : Text(
-                                        'Thêm vào giỏ hàng',
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.bold,
-                                          color: Theme.of(context).colorScheme.primary,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor: AlwaysStoppedAnimation<Color>(
+                                            Theme.of(context).colorScheme.primary,
+                                          ),
                                         ),
+                                      )
+                                    : Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.add_shopping_cart,
+                                            color: Theme.of(context).colorScheme.primary,
+                                            size: 20,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            'Thêm vào giỏ hàng',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              color: Theme.of(context).colorScheme.primary,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                               ),
                             ),
@@ -669,19 +951,29 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                     height: imageHeight,
                                     decoration: BoxDecoration(
                                       color: Colors.grey[200],
-                                      borderRadius: BorderRadius.circular(12),
+                                      borderRadius: BorderRadius.circular(16),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.1),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
                                     ),
                                     child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(12),
+                                      borderRadius: BorderRadius.circular(16),
                                       child: productImages.isNotEmpty
                                           ? CachedNetworkImage(
                                               imageUrl: productImages[selectedImageIndex],
                                               fit: BoxFit.contain,
-                                              placeholder: (context, url) => Center(
-                                                child: CircularProgressIndicator(
-                                                  strokeWidth: 2,
-                                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                                    Theme.of(context).colorScheme.primary,
+                                              placeholder: (context, url) => Container(
+                                                color: Colors.grey[200],
+                                                child: Center(
+                                                  child: CircularProgressIndicator(
+                                                    strokeWidth: 2,
+                                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                                      Theme.of(context).colorScheme.primary,
+                                                    ),
                                                   ),
                                                 ),
                                               ),
@@ -718,16 +1010,25 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                             margin: const EdgeInsets.only(right: 12),
                                             decoration: BoxDecoration(
                                               color: Colors.grey[200],
-                                              borderRadius: BorderRadius.circular(8),
+                                              borderRadius: BorderRadius.circular(12),
                                               border: Border.all(
                                                 color: isSelected
                                                     ? Theme.of(context).colorScheme.primary
                                                     : Colors.transparent,
-                                                width: 2,
+                                                width: 3,
                                               ),
+                                              boxShadow: isSelected
+                                                  ? [
+                                                      BoxShadow(
+                                                        color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                                                        blurRadius: 8,
+                                                        offset: const Offset(0, 2),
+                                                      ),
+                                                    ]
+                                                  : null,
                                             ),
                                             child: ClipRRect(
-                                              borderRadius: BorderRadius.circular(8),
+                                              borderRadius: BorderRadius.circular(12),
                                               child: CachedNetworkImage(
                                                 imageUrl: productImages[index],
                                                 fit: BoxFit.cover,
@@ -797,16 +1098,28 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                           ),
                                           const SizedBox(width: 8),
                                           Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                             decoration: BoxDecoration(
-                                              color: Colors.red[100],
-                                              borderRadius: BorderRadius.circular(4),
+                                              gradient: LinearGradient(
+                                                colors: [
+                                                  Colors.red[600]!,
+                                                  Colors.red[700]!,
+                                                ],
+                                              ),
+                                              borderRadius: BorderRadius.circular(6),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.red.withOpacity(0.3),
+                                                  blurRadius: 4,
+                                                  offset: const Offset(0, 2),
+                                                ),
+                                              ],
                                             ),
                                             child: Text(
                                               '-$discount%',
-                                              style: TextStyle(
+                                              style: const TextStyle(
                                                 fontSize: 14,
-                                                color: Colors.red[700],
+                                                color: Colors.white,
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
@@ -856,6 +1169,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                               version,
                                               style: TextStyle(
                                                 fontSize: 16,
+                                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                                                 color: isAvailable ? null : Colors.grey[400],
                                               ),
                                             ),
@@ -881,11 +1195,20 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                             : null,
                                         selectedColor: Theme.of(context).colorScheme.primaryContainer,
                                         disabledColor: Colors.grey[200],
-                                        backgroundColor: isAvailable ? null : Colors.grey[100],
+                                        backgroundColor: isAvailable ? Colors.grey[50] : Colors.grey[100],
                                         labelStyle: TextStyle(
                                           color: isSelected && isAvailable
                                               ? Theme.of(context).colorScheme.onPrimaryContainer
                                               : (isAvailable ? null : Colors.grey[400]),
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                          side: BorderSide(
+                                            color: isSelected && isAvailable
+                                                ? Theme.of(context).colorScheme.primary
+                                                : Colors.grey[300]!,
+                                            width: isSelected && isAvailable ? 2 : 1,
+                                          ),
                                         ),
                                       );
                                     }).toList(),
@@ -936,9 +1259,20 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                                 color: _hexToColor(colorHex),
                                                 shape: BoxShape.circle,
                                                 border: Border.all(
-                                                  color: isAvailable ? Colors.grey : Colors.grey[300]!,
-                                                  width: 1,
+                                                  color: isSelected && isAvailable
+                                                      ? Theme.of(context).colorScheme.primary
+                                                      : (isAvailable ? Colors.grey : Colors.grey[300]!),
+                                                  width: isSelected && isAvailable ? 2 : 1,
                                                 ),
+                                                boxShadow: isSelected && isAvailable
+                                                    ? [
+                                                        BoxShadow(
+                                                          color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                                                          blurRadius: 4,
+                                                          offset: const Offset(0, 2),
+                                                        ),
+                                                      ]
+                                                    : null,
                                               ),
                                             ),
                                             const SizedBox(width: 8),
@@ -946,6 +1280,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                               colorName,
                                               style: TextStyle(
                                                 fontSize: 16,
+                                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                                                 color: isAvailable ? null : Colors.grey[400],
                                               ),
                                             ),
@@ -971,11 +1306,20 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                             : null,
                                         selectedColor: Theme.of(context).colorScheme.primaryContainer,
                                         disabledColor: Colors.grey[200],
-                                        backgroundColor: isAvailable ? null : Colors.grey[100],
+                                        backgroundColor: isAvailable ? Colors.grey[50] : Colors.grey[100],
                                         labelStyle: TextStyle(
                                           color: isSelected && isAvailable
                                               ? Theme.of(context).colorScheme.onPrimaryContainer
                                               : (isAvailable ? null : Colors.grey[400]),
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                          side: BorderSide(
+                                            color: isSelected && isAvailable
+                                                ? Theme.of(context).colorScheme.primary
+                                                : Colors.grey[300]!,
+                                            width: isSelected && isAvailable ? 2 : 1,
+                                          ),
                                         ),
                                       );
                                     }).toList(),
@@ -984,22 +1328,58 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                 ],
                                 const SizedBox(height: 32),
                                 // Nút Mua ngay
-                                SizedBox(
+                                Container(
                                   width: double.infinity,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        AppColors.headerBackground,
+                                        AppColors.primaryLight,
+                                      ],
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppColors.headerBackground.withOpacity(0.3),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
                                   child: ElevatedButton(
-                                    onPressed: () {},
+                                    onPressed: _isAddingToCart ? null : _handleBuyNow,
                                     style: ElevatedButton.styleFrom(
                                       padding: const EdgeInsets.all(16),
-                                      backgroundColor: Theme.of(context).colorScheme.primary,
-                                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                                    ),
-                                    child: const Text(
-                                      'Mua ngay',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
+                                      backgroundColor: Colors.transparent,
+                                      shadowColor: Colors.transparent,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
                                       ),
                                     ),
+                                    child: _isAddingToCart
+                                        ? const SizedBox(
+                                            height: 20,
+                                            width: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                            ),
+                                          )
+                                        : const Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Icon(Icons.shopping_cart, color: Colors.white, size: 20),
+                                              SizedBox(width: 8),
+                                              Text(
+                                                'Mua ngay',
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                   ),
                                 ),
                                 const SizedBox(height: 16),
@@ -1014,20 +1394,39 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                         color: Theme.of(context).colorScheme.primary,
                                         width: 2,
                                       ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
                                     ),
                                     child: _isAddingToCart
-                                        ? const SizedBox(
+                                        ? SizedBox(
                                             height: 20,
                                             width: 20,
-                                            child: CircularProgressIndicator(strokeWidth: 2),
-                                          )
-                                        : Text(
-                                            'Thêm vào giỏ hàng',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                              color: Theme.of(context).colorScheme.primary,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor: AlwaysStoppedAnimation<Color>(
+                                                Theme.of(context).colorScheme.primary,
+                                              ),
                                             ),
+                                          )
+                                        : Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Icon(
+                                                Icons.add_shopping_cart,
+                                                color: Theme.of(context).colorScheme.primary,
+                                                size: 20,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                'Thêm vào giỏ hàng',
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Theme.of(context).colorScheme.primary,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                   ),
                                 ),

@@ -1,47 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../services/order_service.dart';
-import '../models/order_status.dart';
+import '../services/cart_service.dart';
+import '../models/cart_model.dart';
+import '../config/colors.dart';
 
-class HeaderOrdersButton extends StatelessWidget {
+class HeaderCartButton extends StatelessWidget {
   final bool isMobile;
 
-  const HeaderOrdersButton({
+  const HeaderCartButton({
     super.key,
     required this.isMobile,
   });
 
   @override
   Widget build(BuildContext context) {
-    final _orderService = OrderService();
+    final _cartService = CartService();
 
-    return StreamBuilder(
-      stream: _orderService.getOrders(),
+    return StreamBuilder<List<CartItemModel>>(
+      stream: _cartService.getCartItems(),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return IconButton(
-            icon: const Icon(Icons.receipt_long_outlined),
-            color: Colors.grey[600],
-            onPressed: () => context.go('/orders'),
-          );
+        // Tính tổng số lượng sản phẩm (tổng quantity của tất cả items)
+        int totalCount = 0;
+        if (snapshot.hasData && snapshot.data != null) {
+          final items = snapshot.data!;
+          for (var item in items) {
+            totalCount += item.quantity;
+          }
         }
-
-        final orders = snapshot.data ?? [];
-        // Đếm số đơn hàng đang chờ xác nhận hoặc đang giao
-        final pendingCount = orders.where((order) =>
-            order.status == OrderStatus.pending ||
-            order.status == OrderStatus.delivering).length;
 
         if (isMobile) {
           return Stack(
             clipBehavior: Clip.none,
             children: [
               IconButton(
-                icon: const Icon(Icons.receipt_long_outlined),
-                color: Colors.grey[600],
-                onPressed: () => context.go('/orders'),
+                icon: const Icon(Icons.shopping_cart_outlined),
+                color: AppColors.headerIcon,
+                onPressed: () => context.go('/cart'),
               ),
-              if (pendingCount > 0)
+              if (totalCount > 0)
                 Positioned(
                   right: 6,
                   top: 6,
@@ -56,7 +52,7 @@ class HeaderOrdersButton extends StatelessWidget {
                       minHeight: 16,
                     ),
                     child: Text(
-                      pendingCount > 9 ? '9+' : '$pendingCount',
+                      totalCount > 99 ? '99+' : '$totalCount',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 10,
@@ -69,47 +65,46 @@ class HeaderOrdersButton extends StatelessWidget {
             ],
           );
         } else {
-          // Desktop: Icon với badge
+          // Desktop: Icon với badge trong _NavItem
           return Stack(
             clipBehavior: Clip.none,
             children: [
               GestureDetector(
-                onTap: () => context.go('/orders'),
+                onTap: () => context.go('/cart'),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
-                    color: GoRouterState.of(context).uri.path == '/orders'
-                        ? Colors.blue[50]
+                    color: GoRouterState.of(context).uri.path == '/cart'
+                        ? AppColors.headerNavActiveBackground
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
-                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        Icons.receipt_long_outlined,
+                        Icons.shopping_cart,
                         size: 18,
-                        color: GoRouterState.of(context).uri.path == '/orders'
-                            ? Colors.blue[700]
-                            : Colors.white,
+                        color: GoRouterState.of(context).uri.path == '/cart'
+                            ? AppColors.headerNavActive
+                            : AppColors.headerText,
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        'Đơn hàng',
+                        'Giỏ hàng',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              fontWeight: GoRouterState.of(context).uri.path == '/orders'
+                              fontWeight: GoRouterState.of(context).uri.path == '/cart'
                                   ? FontWeight.w600
                                   : FontWeight.normal,
-                              color: GoRouterState.of(context).uri.path == '/orders'
-                                  ? Colors.blue[700]
-                                  : Colors.white,
+                              color: GoRouterState.of(context).uri.path == '/cart'
+                                  ? AppColors.headerNavActive
+                                  : AppColors.headerText,
                             ),
                       ),
                     ],
                   ),
                 ),
               ),
-              if (pendingCount > 0)
+              if (totalCount > 0)
                 Positioned(
                   right: 0,
                   top: 0,
@@ -124,7 +119,7 @@ class HeaderOrdersButton extends StatelessWidget {
                       minHeight: 16,
                     ),
                     child: Text(
-                      pendingCount > 9 ? '9+' : '$pendingCount',
+                      totalCount > 99 ? '99+' : '$totalCount',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 10,

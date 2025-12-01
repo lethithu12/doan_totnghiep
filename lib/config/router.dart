@@ -4,10 +4,11 @@ import '../../pages/products_page.dart';
 import '../../pages/categories_page.dart';
 import '../../pages/cart_page.dart';
 import '../../pages/orders_page.dart';
-import '../../pages/profile_page.dart';
+// import '../../pages/profile_page.dart';
 import '../../pages/product_detail_page.dart';
 import '../../pages/login_page.dart';
 import '../../pages/checkout_page.dart';
+import '../../models/cart_model.dart';
 import '../../pages/admin/admin_dashboard_page.dart';
 import '../../pages/admin/admin_products_page.dart';
 import '../../pages/admin/admin_product_form_page.dart';
@@ -62,15 +63,22 @@ final GoRouter appRouter = GoRouter(
           name: 'orders',
           builder: (context, state) => const OrdersPage(),
         ),
-        GoRoute(
-          path: '/profile',
-          name: 'profile',
-          builder: (context, state) => const ProfilePage(),
-        ),
+        // GoRoute(
+        //   path: '/profile',
+        //   name: 'profile',
+        //   builder: (context, state) => const ProfilePage(),
+        // ),
         GoRoute(
           path: '/checkout',
           name: 'checkout',
-          builder: (context, state) => const CheckoutPage(),
+          builder: (context, state) {
+            // Lấy specificItems từ extra nếu có
+            final specificItems = state.extra as List<CartItemModel>?;
+            if (specificItems != null && specificItems.isNotEmpty) {
+              return CheckoutPage(specificItems: specificItems);
+            }
+            return const CheckoutPage();
+          },
         ),
       ],
     ),

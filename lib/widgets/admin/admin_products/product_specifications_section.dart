@@ -8,6 +8,7 @@ class ProductSpecificationsSection extends StatelessWidget {
   final VoidCallback onAddSpecification;
   final Function(int) onRemoveSpecification;
   final bool isTablet;
+  final bool isMobile;
 
   const ProductSpecificationsSection({
     super.key,
@@ -17,6 +18,7 @@ class ProductSpecificationsSection extends StatelessWidget {
     required this.onAddSpecification,
     required this.onRemoveSpecification,
     required this.isTablet,
+    required this.isMobile,
   });
 
   @override
@@ -36,37 +38,70 @@ class ProductSpecificationsSection extends StatelessWidget {
                   ),
             ),
             const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: ProductTextField(
+            if (isMobile)
+              // Mobile: Column layout
+              Column(
+                children: [
+                  ProductTextField(
                     controller: labelController,
                     label: 'Tên thông số',
                     hint: 'Ví dụ: Màn hình',
                     isTablet: isTablet,
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 2,
-                  child: ProductTextField(
+                  const SizedBox(height: 12),
+                  ProductTextField(
                     controller: valueController,
                     label: 'Giá trị',
                     hint: 'Ví dụ: 6.7 inch, Super Retina XDR',
                     isTablet: isTablet,
                   ),
-                ),
-                const SizedBox(width: 12),
-                ElevatedButton.icon(
-                  onPressed: onAddSpecification,
-                  icon: const Icon(Icons.add),
-                  label: const Text(''),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: onAddSpecification,
+                      icon: const Icon(Icons.add),
+                      label: const Text('Thêm thông số'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              )
+            else
+              // Desktop/Tablet: Row layout
+              Row(
+                children: [
+                  Expanded(
+                    child: ProductTextField(
+                      controller: labelController,
+                      label: 'Tên thông số',
+                      hint: 'Ví dụ: Màn hình',
+                      isTablet: isTablet,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: ProductTextField(
+                      controller: valueController,
+                      label: 'Giá trị',
+                      hint: 'Ví dụ: 6.7 inch, Super Retina XDR',
+                      isTablet: isTablet,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton.icon(
+                    onPressed: onAddSpecification,
+                    icon: const Icon(Icons.add),
+                    label: const Text(''),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                  ),
+                ],
+              ),
             if (specifications.isNotEmpty) ...[
               const SizedBox(height: 24),
               Text(
@@ -88,35 +123,69 @@ class ProductSpecificationsSection extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: Colors.grey[300]!),
                   ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: Text(
-                          spec['label'] ?? '',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: isTablet ? 14 : 16,
-                          ),
+                  child: isMobile
+                      ? // Mobile: Column layout
+                      Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    spec['label'] ?? '',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: isTablet ? 14 : 16,
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete, color: Colors.red),
+                                  onPressed: () => onRemoveSpecification(index),
+                                  tooltip: 'Xóa thông số',
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              spec['value'] ?? '',
+                              style: TextStyle(
+                                fontSize: isTablet ? 14 : 16,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                          ],
+                        )
+                      : // Desktop/Tablet: Row layout
+                      Row(
+                          children: [
+                            Expanded(
+                              flex: 2,
+                              child: Text(
+                                spec['label'] ?? '',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: isTablet ? 14 : 16,
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              flex: 3,
+                              child: Text(
+                                spec['value'] ?? '',
+                                style: TextStyle(
+                                  fontSize: isTablet ? 14 : 16,
+                                  color: Colors.grey[700],
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () => onRemoveSpecification(index),
+                              tooltip: 'Xóa thông số',
+                            ),
+                          ],
                         ),
-                      ),
-                      Expanded(
-                        flex: 3,
-                        child: Text(
-                          spec['value'] ?? '',
-                          style: TextStyle(
-                            fontSize: isTablet ? 14 : 16,
-                            color: Colors.grey[700],
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => onRemoveSpecification(index),
-                        tooltip: 'Xóa thông số',
-                      ),
-                    ],
-                  ),
                 );
               }),
             ],

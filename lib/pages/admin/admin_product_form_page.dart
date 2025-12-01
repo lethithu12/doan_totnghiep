@@ -554,15 +554,13 @@ class _AdminProductFormPageState extends State<AdminProductFormPage>
             .where((cat) => cat.parentId == _selectedParentCategoryId)
             .toList();
 
-        return SingleChildScrollView(
-          padding: EdgeInsets.all(isMobile ? 16 : (isTablet ? 24 : 32)),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header
-                Row(
+        return Scaffold(
+          body: Column(
+            children: [
+              // Header - Fixed at top
+              Container(
+                padding: EdgeInsets.all(isMobile ? 16 : (isTablet ? 24 : 32)),
+                child: Row(
                   children: [
                     IconButton(
                       icon: const Icon(Icons.arrow_back),
@@ -580,9 +578,11 @@ class _AdminProductFormPageState extends State<AdminProductFormPage>
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
-                // Tab Bar
-                TabBar(
+              ),
+              // Tab Bar - Fixed below header
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : (isTablet ? 24 : 32)),
+                child: TabBar(
                   controller: _tabController,
                   labelColor: Theme.of(context).colorScheme.primary,
                   unselectedLabelColor: Colors.grey,
@@ -593,108 +593,146 @@ class _AdminProductFormPageState extends State<AdminProductFormPage>
                     Tab(text: 'Thông số'),
                   ],
                 ),
-                const SizedBox(height: 16),
-                // Tab Bar View
-                SizedBox(
-                  height: isMobile ? 600 : 700,
+              ),
+              // Tab Bar View - Scrollable content
+              Expanded(
+                child: Form(
+                  key: _formKey,
                   child: TabBarView(
                     controller: _tabController,
                     children: [
                       // Tab 1: Thông tin
-                      ProductInfoTab(
-                        nameController: _nameController,
-                        priceController: _priceController,
-                        originalPriceController: _originalPriceController,
-                        quantityController: _quantityController,
-                        descriptionController: _descriptionController,
-                        selectedParentCategoryId: _selectedParentCategoryId,
-                        selectedChildCategoryId: _selectedChildCategoryId,
-                        selectedStatus: _selectedStatus,
-                        parentCategories: parentCategories,
-                        childCategories: childCategories,
-                        onParentCategoryChanged: (value) {
-                          setState(() {
-                            _selectedParentCategoryId = value;
-                            _selectedChildCategoryId = null;
-                          });
-                        },
-                        onChildCategoryChanged: (value) {
-                          setState(() {
-                            _selectedChildCategoryId = value;
-                          });
-                        },
-                        onStatusChanged: (value) {
-                          setState(() {
-                            _selectedStatus = value;
-                          });
-                        },
-                        selectedImageFiles: _selectedImageFiles,
-                        imageUrls: _imageUrls,
-                        onPickImages: _pickImages,
-                        onRemoveImage: _removeImage,
-                        isUploading: _isUploading,
-                        isTablet: isTablet,
-                        isMobile: isMobile,
+                      SingleChildScrollView(
+                        padding: EdgeInsets.all(isMobile ? 16 : (isTablet ? 24 : 32)),
+                        child: Column(
+                          children: [
+                            ProductInfoTab(
+                              nameController: _nameController,
+                              priceController: _priceController,
+                              originalPriceController: _originalPriceController,
+                              quantityController: _quantityController,
+                              descriptionController: _descriptionController,
+                              selectedParentCategoryId: _selectedParentCategoryId,
+                              selectedChildCategoryId: _selectedChildCategoryId,
+                              selectedStatus: _selectedStatus,
+                              parentCategories: parentCategories,
+                              childCategories: childCategories,
+                              onParentCategoryChanged: (value) {
+                                setState(() {
+                                  _selectedParentCategoryId = value;
+                                  _selectedChildCategoryId = null;
+                                });
+                              },
+                              onChildCategoryChanged: (value) {
+                                setState(() {
+                                  _selectedChildCategoryId = value;
+                                });
+                              },
+                              onStatusChanged: (value) {
+                                setState(() {
+                                  _selectedStatus = value;
+                                });
+                              },
+                              selectedImageFiles: _selectedImageFiles,
+                              imageUrls: _imageUrls,
+                              onPickImages: _pickImages,
+                              onRemoveImage: _removeImage,
+                              isUploading: _isUploading,
+                              isTablet: isTablet,
+                              isMobile: isMobile,
+                            ),
+                            const SizedBox(height: 24),
+                            // Action buttons
+                            ActionButtons(
+                              isLoading: _isLoading,
+                              onSubmit: _handleSubmit,
+                              onCancel: () => context.go('/admin/products'),
+                              isMobile: isMobile,
+                            ),
+                            SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
+                          ],
+                        ),
                       ),
                       // Tab 2: Option
                       SingleChildScrollView(
-                        child: ProductOptionsSection(
-                          versions: _versions,
-                          colors: _colors,
-                          options: _options,
-                          versionController: _versionController,
-                          colorNameController: _colorNameController,
-                          colorHexController: _colorHexController,
-                          selectedVersionForOption: _selectedVersionForOption,
-                          selectedColorForOption: _selectedColorForOption,
-                          optionOriginalPriceController: _optionOriginalPriceController,
-                          optionDiscountController: _optionDiscountController,
-                          optionQuantityController: _optionQuantityController,
-                          basePrice: int.tryParse(_priceController.text.trim()) ?? 0,
-                          onVersionChanged: (value) {
-                            setState(() {
-                              _selectedVersionForOption = value;
-                            });
-                          },
-                          onColorChanged: (value) {
-                            setState(() {
-                              _selectedColorForOption = value;
-                            });
-                          },
-                          onAddVersion: _addVersion,
-                          onRemoveVersion: _removeVersion,
-                          onAddColor: _addColor,
-                          onRemoveColor: _removeColor,
-                          onAddOption: _addOption,
-                          onRemoveOption: _removeOption,
-                          isTablet: isTablet,
-                          isMobile: isMobile,
+                        padding: EdgeInsets.all(isMobile ? 16 : (isTablet ? 24 : 32)),
+                        child: Column(
+                          children: [
+                            ProductOptionsSection(
+                              versions: _versions,
+                              colors: _colors,
+                              options: _options,
+                              versionController: _versionController,
+                              colorNameController: _colorNameController,
+                              colorHexController: _colorHexController,
+                              selectedVersionForOption: _selectedVersionForOption,
+                              selectedColorForOption: _selectedColorForOption,
+                              optionOriginalPriceController: _optionOriginalPriceController,
+                              optionDiscountController: _optionDiscountController,
+                              optionQuantityController: _optionQuantityController,
+                              basePrice: int.tryParse(_priceController.text.trim()) ?? 0,
+                              onVersionChanged: (value) {
+                                setState(() {
+                                  _selectedVersionForOption = value;
+                                });
+                              },
+                              onColorChanged: (value) {
+                                setState(() {
+                                  _selectedColorForOption = value;
+                                });
+                              },
+                              onAddVersion: _addVersion,
+                              onRemoveVersion: _removeVersion,
+                              onAddColor: _addColor,
+                              onRemoveColor: _removeColor,
+                              onAddOption: _addOption,
+                              onRemoveOption: _removeOption,
+                              isTablet: isTablet,
+                              isMobile: isMobile,
+                            ),
+                            const SizedBox(height: 24),
+                            // Action buttons
+                            ActionButtons(
+                              isLoading: _isLoading,
+                              onSubmit: _handleSubmit,
+                              onCancel: () => context.go('/admin/products'),
+                              isMobile: isMobile,
+                            ),
+                            SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
+                          ],
                         ),
                       ),
                       // Tab 3: Thông số
                       SingleChildScrollView(
-                        child: ProductSpecificationsSection(
-                          specifications: _specifications,
-                          labelController: _specLabelController,
-                          valueController: _specValueController,
-                          onAddSpecification: _addSpecification,
-                          onRemoveSpecification: _removeSpecification,
-                          isTablet: isTablet,
+                        padding: EdgeInsets.all(isMobile ? 16 : (isTablet ? 24 : 32)),
+                        child: Column(
+                          children: [
+                            ProductSpecificationsSection(
+                              specifications: _specifications,
+                              labelController: _specLabelController,
+                              valueController: _specValueController,
+                              onAddSpecification: _addSpecification,
+                              onRemoveSpecification: _removeSpecification,
+                              isTablet: isTablet,
+                              isMobile: isMobile,
+                            ),
+                            const SizedBox(height: 24),
+                            // Action buttons
+                            ActionButtons(
+                              isLoading: _isLoading,
+                              onSubmit: _handleSubmit,
+                              onCancel: () => context.go('/admin/products'),
+                              isMobile: isMobile,
+                            ),
+                            SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 24),
-                // Action buttons
-                ActionButtons(
-                  isLoading: _isLoading,
-                  onSubmit: _handleSubmit,
-                  onCancel: () => context.go('/admin/products'),
-                  isMobile: isMobile,
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         );
       },

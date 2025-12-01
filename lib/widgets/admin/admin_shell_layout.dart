@@ -256,14 +256,14 @@ class _AdminSidebar extends StatelessWidget {
                   isTablet: isTablet,
                   isCollapsed: isCollapsed,
                 ),
-                _AdminSidebarItem(
-                  icon: Icons.analytics,
-                  label: 'Thống kê',
-                  route: '/admin/analytics',
-                  isActive: currentPath == '/admin/analytics',
-                  isTablet: isTablet,
-                  isCollapsed: isCollapsed,
-                ),
+                // _AdminSidebarItem(
+                //   icon: Icons.analytics,
+                //   label: 'Thống kê',
+                //   route: '/admin/analytics',
+                //   isActive: currentPath == '/admin/analytics',
+                //   isTablet: isTablet,
+                //   isCollapsed: isCollapsed,
+                // ),
                 const Divider(color: Colors.grey, height: 32),
                 _AdminSidebarItem(
                   icon: Icons.settings,
@@ -432,16 +432,16 @@ class _AdminDrawer extends StatelessWidget {
                     onItemSelected();
                   },
                 ),
-                _AdminDrawerItem(
-                  icon: Icons.analytics,
-                  label: 'Thống kê',
-                  route: '/admin/analytics',
-                  isActive: currentPath == '/admin/analytics',
-                  onTap: () {
-                    context.go('/admin/analytics');
-                    onItemSelected();
-                  },
-                ),
+                // _AdminDrawerItem(
+                //   icon: Icons.analytics,
+                //   label: 'Thống kê',
+                //   route: '/admin/analytics',
+                //   isActive: currentPath == '/admin/analytics',
+                //   onTap: () {
+                //     context.go('/admin/analytics');
+                //     onItemSelected();
+                //   },
+                // ),
                 const Divider(color: Colors.grey, height: 32),
                 _AdminDrawerItem(
                   icon: Icons.settings,

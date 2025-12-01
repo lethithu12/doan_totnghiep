@@ -60,6 +60,7 @@ class FeaturedProducts extends StatelessWidget {
               final product = products[index];
               final isMobile = ResponsiveBreakpoints.of(context).isMobile;
               return Card(
+                color: Colors.white,
                 clipBehavior: Clip.antiAlias,
                 child: InkWell(
                   onTap: () => context.go('/product/${product['id']}'),

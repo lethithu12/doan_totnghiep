@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:responsive_framework/responsive_framework.dart';
+import '../config/colors.dart';
 
 class Footer extends StatelessWidget {
   const Footer({super.key});
@@ -15,7 +16,7 @@ class Footer extends StatelessWidget {
     }
     
     return Container(
-      color: Theme.of(context).colorScheme.surfaceVariant,
+      color: AppColors.headerBackground,
       padding: EdgeInsets.symmetric(
         horizontal: isMobile ? 16 : (isTablet ? 24 : 48),
         vertical: isMobile ? 24 : (isTablet ? 32 : 48),
@@ -154,6 +155,7 @@ class _FooterSection extends StatelessWidget {
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
                 fontSize: isMobile ? 16 : 18,
+                color: AppColors.headerText,
               ),
         ),
         SizedBox(height: isMobile ? 12 : 16),
@@ -185,7 +187,7 @@ class _FooterLink extends StatelessWidget {
           child: Text(
             text,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  color: AppColors.headerText,
                   fontSize: isMobile ? 14 : 16,
                 ),
           ),

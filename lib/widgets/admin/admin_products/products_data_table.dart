@@ -3,6 +3,7 @@ import 'package:data_table_2/data_table_2.dart';
 import 'products_data_source.dart';
 import '../../../models/product_model.dart';
 import '../../../models/category_model.dart';
+import '../../../config/colors.dart';
 
 class ProductsDataTable extends StatelessWidget {
   final List<ProductModel> products;
@@ -44,46 +45,104 @@ class ProductsDataTable extends StatelessWidget {
       onRowsPerPageChanged: onRowsPerPageChanged,
       sortColumnIndex: sortColumnIndex,
       sortAscending: sortAscending,
+      headingRowColor: WidgetStateProperty.all(AppColors.headerBackground),
+      headingRowHeight: 56,
       columns: [
-        const DataColumn2(
-          label: Text('Hình ảnh'),
+        DataColumn2(
+          label: Text(
+            'Hình ảnh',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
           size: ColumnSize.S,
         ),
         DataColumn2(
-          label: const Text('Tên sản phẩm'),
+          label: Text(
+            'Tên sản phẩm',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
           size: ColumnSize.L,
           onSort: (columnIndex, ascending) => onSort(0, ascending),
         ),
         DataColumn2(
-          label: const Text('Danh mục'),
+          label: Text(
+            'Danh mục',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
           size: ColumnSize.M,
           onSort: (columnIndex, ascending) => onSort(1, ascending),
         ),
         DataColumn2(
-          label: const Text('Giá'),
+          label: Text(
+            'Giá',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
           size: ColumnSize.M,
           numeric: true,
           onSort: (columnIndex, ascending) => onSort(2, ascending),
         ),
         DataColumn2(
-          label: const Text('Giá gốc'),
+          label: Text(
+            'Giá gốc',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
           size: ColumnSize.M,
           numeric: true,
           onSort: (columnIndex, ascending) => onSort(3, ascending),
         ),
         DataColumn2(
-          label: const Text('Số lượng'),
+          label: Text(
+            'Số lượng',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
           size: ColumnSize.S,
           numeric: true,
           onSort: (columnIndex, ascending) => onSort(4, ascending),
         ),
         DataColumn2(
-          label: const Text('Trạng thái'),
+          label: Text(
+            'Trạng thái',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
           size: ColumnSize.S,
           onSort: (columnIndex, ascending) => onSort(5, ascending),
         ),
-        const DataColumn2(
-          label: Text('Hành động'),
+        DataColumn2(
+          label: Text(
+            'Hành động',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
           size: ColumnSize.S,
         ),
       ],

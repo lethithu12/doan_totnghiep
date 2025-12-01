@@ -53,7 +53,7 @@ class CategoriesSection extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  padding: const EdgeInsets.symmetric(horizontal: 5),
                   child: Text(
                     'Danh mục sản phẩm',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -63,14 +63,14 @@ class CategoriesSection extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 SizedBox(
-                  height: 180, // 2 dòng x 90px mỗi item
+                  height: 200, // Tăng chiều cao để hiển thị đủ chữ
                   child: GridView.builder(
                     scrollDirection: Axis.horizontal,
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2, // 2 dòng
                       mainAxisSpacing: 16,
                       crossAxisSpacing: 16,
-                      childAspectRatio: 0.8,
+                      childAspectRatio: 0.7, // Giảm tỉ lệ để có thêm không gian cho text
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     itemCount: visibleCategories.length,
@@ -79,54 +79,61 @@ class CategoriesSection extends StatelessWidget {
                       return InkWell(
                         onTap: () => context.go('/products?category=${category.id}'),
                         borderRadius: BorderRadius.circular(12),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              width: 50,
-                              height: 50,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: AppColors.primary.withValues(alpha: 0.1),
-                              ),
-                              child: category.imageUrl != null
-                                  ? ClipOval(
-                                      child: CachedNetworkImage(
-                                        imageUrl: category.imageUrl!,
-                                        width: 50,
-                                        height: 50,
-                                        fit: BoxFit.cover,
-                                        placeholder: (context, url) => Center(
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            valueColor: AlwaysStoppedAnimation<Color>(
-                                              AppColors.primary,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 50,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: AppColors.primary.withValues(alpha: 0.1),
+                                ),
+                                child: category.imageUrl != null
+                                    ? ClipOval(
+                                        child: CachedNetworkImage(
+                                          imageUrl: category.imageUrl!,
+                                          width: 50,
+                                          height: 50,
+                                          fit: BoxFit.cover,
+                                          placeholder: (context, url) => Center(
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor: AlwaysStoppedAnimation<Color>(
+                                                AppColors.primary,
+                                              ),
                                             ),
                                           ),
+                                          errorWidget: (context, url, error) => Icon(
+                                            Icons.category,
+                                            color: AppColors.primary,
+                                            size: 24,
+                                          ),
                                         ),
-                                        errorWidget: (context, url, error) => Icon(
-                                          Icons.category,
-                                          color: AppColors.primary,
-                                          size: 24,
-                                        ),
+                                      )
+                                    : Icon(
+                                        Icons.category,
+                                        color: AppColors.primary,
                                       ),
-                                    )
-                                  : Icon(
-                                      Icons.category,
-                                      color: AppColors.primary,
-                                    ),
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              category.name,
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                              textAlign: TextAlign.center,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
+                              ),
+                              const SizedBox(height: 8),
+                              Flexible(
+                                child: Text(
+                                  category.name,
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 12,
+                                      ),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       );
                     },

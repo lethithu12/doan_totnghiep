@@ -179,6 +179,7 @@ class _AdminHomeSectionsPageState extends State<AdminHomeSectionsPage> {
           return Column(
             children: [
               // Stats
+              if (!isMobile)
               SectionsStats(sections: _allSections),
 
               // Search and Filter

@@ -464,37 +464,73 @@ class ProductOptionsSection extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                Text(
-                                  'Giá gốc: ${_formatPrice(originalPrice)} đ',
-                                  style: TextStyle(
-                                    fontSize: isTablet ? 12 : 14,
-                                    color: Colors.grey[700],
-                                  ),
-                                ),
-                                if (discount > 0) ...[
-                                  const SizedBox(width: 12),
+                            if (isMobile)
+                              // Mobile: Column layout
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
                                   Text(
-                                    'Giảm: $discount%',
+                                    'Giá gốc: ${_formatPrice(originalPrice)} đ',
                                     style: TextStyle(
                                       fontSize: isTablet ? 12 : 14,
-                                      color: Colors.red[700],
-                                      fontWeight: FontWeight.w600,
+                                      color: Colors.grey[700],
                                     ),
                                   ),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    'Giá cuối: ${_formatPrice(finalPrice)} đ',
-                                    style: TextStyle(
-                                      fontSize: isTablet ? 12 : 14,
-                                      color: Theme.of(context).colorScheme.primary,
-                                      fontWeight: FontWeight.w600,
+                                  if (discount > 0) ...[
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Giảm: $discount%',
+                                      style: TextStyle(
+                                        fontSize: isTablet ? 12 : 14,
+                                        color: Colors.red[700],
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
-                                  ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Giá cuối: ${_formatPrice(finalPrice)} đ',
+                                      style: TextStyle(
+                                        fontSize: isTablet ? 12 : 14,
+                                        color: Theme.of(context).colorScheme.primary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
                                 ],
-                              ],
-                            ),
+                              )
+                            else
+                              // Desktop/Tablet: Row layout
+                              Row(
+                                children: [
+                                  Text(
+                                    'Giá gốc: ${_formatPrice(originalPrice)} đ',
+                                    style: TextStyle(
+                                      fontSize: isTablet ? 12 : 14,
+                                      color: Colors.grey[700],
+                                    ),
+                                  ),
+                                  if (discount > 0) ...[
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      'Giảm: $discount%',
+                                      style: TextStyle(
+                                        fontSize: isTablet ? 12 : 14,
+                                        color: Colors.red[700],
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      'Giá cuối: ${_formatPrice(finalPrice)} đ',
+                                      style: TextStyle(
+                                        fontSize: isTablet ? 12 : 14,
+                                        color: Theme.of(context).colorScheme.primary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
                             const SizedBox(height: 4),
                             Text(
                               'Số lượng: $quantity',

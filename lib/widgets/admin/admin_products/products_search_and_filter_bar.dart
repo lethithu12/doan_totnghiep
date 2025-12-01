@@ -60,8 +60,10 @@ class ProductsSearchAndFilterBar extends StatelessWidget {
             Row(
               children: [
                 Expanded(
+                  flex: 2,
                   child: DropdownButtonFormField<String>(
                     value: selectedCategoryId,
+                    isExpanded: true, // Tránh overflow
                     decoration: InputDecoration(
                       labelText: 'Danh mục',
                       border: OutlineInputBorder(
@@ -73,10 +75,16 @@ class ProductsSearchAndFilterBar extends StatelessWidget {
                       ),
                     ),
                     items: [
-                      const DropdownMenuItem(value: null, child: Text('Tất cả')),
+                      const DropdownMenuItem(
+                        value: null,
+                        child: Text('Tất cả', overflow: TextOverflow.ellipsis),
+                      ),
                       ...categories.map((category) => DropdownMenuItem(
                             value: category.id,
-                            child: Text(category.name),
+                            child: Text(
+                              category.name,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           )),
                     ],
                     onChanged: onCategoryChanged,
@@ -84,8 +92,10 @@ class ProductsSearchAndFilterBar extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
+                  flex: 1,
                   child: DropdownButtonFormField<String>(
                     value: selectedStatus,
+                    isExpanded: true, // Tránh overflow
                     decoration: InputDecoration(
                       labelText: 'Trạng thái',
                       border: OutlineInputBorder(
@@ -97,14 +107,23 @@ class ProductsSearchAndFilterBar extends StatelessWidget {
                       ),
                     ),
                     items: const [
-                      DropdownMenuItem(value: null, child: Text('Tất cả')),
-                      DropdownMenuItem(value: 'Còn hàng', child: Text('Còn hàng')),
-                      DropdownMenuItem(value: 'Hết hàng', child: Text('Hết hàng')),
+                      DropdownMenuItem(
+                        value: null,
+                        child: Text('Tất cả', overflow: TextOverflow.ellipsis),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Còn hàng',
+                        child: Text('Còn hàng', overflow: TextOverflow.ellipsis),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Hết hàng',
+                        child: Text('Hết hàng', overflow: TextOverflow.ellipsis),
+                      ),
                     ],
                     onChanged: onStatusChanged,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 if (selectedCategoryId != null || selectedStatus != null || searchController.text.isNotEmpty)
                   IconButton(
                     icon: const Icon(Icons.clear_all),
@@ -112,6 +131,7 @@ class ProductsSearchAndFilterBar extends StatelessWidget {
                     onPressed: onClearFilters,
                     style: IconButton.styleFrom(
                       backgroundColor: Colors.grey[200],
+                      padding: const EdgeInsets.all(12),
                     ),
                   ),
               ],

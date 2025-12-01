@@ -99,6 +99,7 @@ class DynamicSection extends StatelessWidget {
                   final discount = product.discount;
 
                   return Card(
+                    color: Colors.white,
                     clipBehavior: Clip.antiAlias,
                     child: InkWell(
                       onTap: () {

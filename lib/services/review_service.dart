@@ -182,5 +182,46 @@ class ReviewService {
           .toList();
     });
   }
+
+  /// Kiểm tra xem user đã đánh giá sản phẩm chưa
+  Future<bool> hasUserReviewedProduct(String productId) async {
+    final userId = _currentUserId;
+    if (userId == null) return false;
+
+    try {
+      final snapshot = await _firestore
+          .collection(_collection)
+          .where('productId', isEqualTo: productId)
+          .where('userId', isEqualTo: userId)
+          .limit(1)
+          .get();
+
+      return snapshot.docs.isNotEmpty;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Lấy review của user cho sản phẩm (nếu có)
+  Future<ReviewModel?> getUserReviewForProduct(String productId) async {
+    final userId = _currentUserId;
+    if (userId == null) return null;
+
+    try {
+      final snapshot = await _firestore
+          .collection(_collection)
+          .where('productId', isEqualTo: productId)
+          .where('userId', isEqualTo: userId)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isNotEmpty) {
+        return ReviewModel.fromMap(snapshot.docs.first.id, snapshot.docs.first.data());
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
 }
 

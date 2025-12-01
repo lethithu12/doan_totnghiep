@@ -53,10 +53,9 @@ class ProductInfoTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
           if (isMobile)
             BasicInfoSection(
               nameController: nameController,
@@ -72,6 +71,7 @@ class ProductInfoTab extends StatelessWidget {
               onChildCategoryChanged: onChildCategoryChanged,
               onStatusChanged: onStatusChanged,
               isTablet: isTablet,
+              isMobile: isMobile,
             )
           else
             Row(
@@ -93,6 +93,7 @@ class ProductInfoTab extends StatelessWidget {
                     onChildCategoryChanged: onChildCategoryChanged,
                     onStatusChanged: onStatusChanged,
                     isTablet: isTablet,
+                    isMobile: isMobile,
                   ),
                 ),
                 const SizedBox(width: 24),
@@ -128,16 +129,15 @@ class ProductInfoTab extends StatelessWidget {
               ],
             ),
           const SizedBox(height: 24),
-          ProductImagesSection(
-            selectedImageFiles: selectedImageFiles,
-            imageUrls: imageUrls,
-            onPickImages: onPickImages,
-            onRemoveImage: onRemoveImage,
-            isUploading: isUploading,
-            isTablet: isTablet,
-          ),
-        ],
-      ),
+        ProductImagesSection(
+          selectedImageFiles: selectedImageFiles,
+          imageUrls: imageUrls,
+          onPickImages: onPickImages,
+          onRemoveImage: onRemoveImage,
+          isUploading: isUploading,
+          isTablet: isTablet,
+        ),
+      ],
     );
   }
 }

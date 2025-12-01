@@ -203,6 +203,7 @@ class _MobileProductFormState extends State<MobileProductForm>
                   onAddSpecification: widget.onAddSpecification,
                   onRemoveSpecification: widget.onRemoveSpecification,
                   isTablet: false,
+                  isMobile: true,
                 ),
               ),
             ],

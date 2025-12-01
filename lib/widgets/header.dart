@@ -4,6 +4,7 @@ import 'package:responsive_framework/responsive_framework.dart';
 import '../config/colors.dart';
 import '../services/auth_service.dart';
 import 'header_orders_button.dart';
+import 'header_cart_button.dart';
 
 class Header extends StatelessWidget {
   const Header({super.key});
@@ -68,16 +69,7 @@ class Header extends StatelessWidget {
                   route: '/products',
                 ),
                 const SizedBox(width: 24),
-                _NavItem(
-                  label: 'Danh mục',
-                  route: '/categories',
-                ),
-                const SizedBox(width: 24),
-                _NavItem(
-                  label: 'Giỏ hàng',
-                  route: '/cart',
-                  icon: Icons.shopping_cart,
-                ),
+                HeaderCartButton(isMobile: false),
                 const SizedBox(width: 24),
                 HeaderOrdersButton(isMobile: false),
                 const SizedBox(width: 24),
@@ -85,15 +77,7 @@ class Header extends StatelessWidget {
               ] else ...[
                 // Mobile: Orders, Cart icon và Menu button
                 HeaderOrdersButton(isMobile: true),
-                IconButton(
-                  icon: const Icon(
-                    Icons.shopping_cart_outlined,
-                    color: AppColors.headerIcon,
-                  ),
-                  onPressed: () {
-                    context.go('/cart');
-                  },
-                ),
+                HeaderCartButton(isMobile: true),
                 IconButton(
                   icon: const Icon(
                     Icons.menu,
@@ -112,44 +96,71 @@ class Header extends StatelessWidget {
   }
 
   void _showMobileMenu(BuildContext context) {
+    // Get current route before showing bottom sheet
+    final currentRoute = GoRouterState.of(context).uri.path;
+    
     showModalBottomSheet(
       context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _MobileNavItem(
-              label: 'Trang chủ',
-              icon: Icons.home,
-              route: '/',
+            // Handle bar
+            Container(
+              margin: const EdgeInsets.only(top: 12, bottom: 8),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-            const SizedBox(height: 16),
-            _MobileNavItem(
-              label: 'Sản phẩm',
-              icon: Icons.phone_android,
-              route: '/products',
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _MobileNavItem(
+                    label: 'Trang chủ',
+                    icon: Icons.home,
+                    route: '/',
+                    currentRoute: currentRoute,
+                  ),
+                  const SizedBox(height: 8),
+                  _MobileNavItem(
+                    label: 'Sản phẩm',
+                    icon: Icons.phone_android,
+                    route: '/products',
+                    currentRoute: currentRoute,
+                  ),
+                  const SizedBox(height: 8),
+                  _MobileNavItem(
+                    label: 'Đơn hàng',
+                    icon: Icons.receipt_long,
+                    route: '/orders',
+                    currentRoute: currentRoute,
+                  ),
+                  const SizedBox(height: 8),
+                  _MobileNavItem(
+                    label: 'Giỏ hàng',
+                    icon: Icons.shopping_cart,
+                    route: '/cart',
+                    currentRoute: currentRoute,
+                  ),
+                  const SizedBox(height: 8),
+                  _MobileAccountButton(currentRoute: currentRoute),
+                  SizedBox(height: MediaQuery.of(sheetContext).padding.bottom + 8),
+                ],
+              ),
             ),
-            const SizedBox(height: 16),
-            _MobileNavItem(
-              label: 'Danh mục',
-              icon: Icons.category,
-              route: '/categories',
-            ),
-            const SizedBox(height: 16),
-            _MobileNavItem(
-              label: 'Đơn hàng',
-              icon: Icons.receipt_long,
-              route: '/orders',
-            ),
-            const SizedBox(height: 16),
-            _MobileNavItem(
-              label: 'Giỏ hàng',
-              icon: Icons.shopping_cart,
-              route: '/cart',
-            ),
-            const SizedBox(height: 16),
-            _MobileAccountButton(),
           ],
         ),
       ),
@@ -190,7 +201,7 @@ class _NavItem extends StatelessWidget {
                 size: 18,
                 color: isActive
                     ? AppColors.headerNavActive
-                    : AppColors.headerNavInactive,
+                    : AppColors.headerText, // Màu trắng khi không active
               ),
               const SizedBox(width: 6),
             ],
@@ -200,7 +211,7 @@ class _NavItem extends StatelessWidget {
                     fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
                     color: isActive
                         ? AppColors.headerNavActive
-                        : AppColors.headerNavInactive,
+                        : AppColors.headerText, // Màu trắng khi không active
                   ),
             ),
           ],
@@ -214,21 +225,46 @@ class _MobileNavItem extends StatelessWidget {
   final String label;
   final IconData icon;
   final String route;
+  final String currentRoute;
 
   const _MobileNavItem({
     required this.label,
     required this.icon,
     required this.route,
+    required this.currentRoute,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isActive = currentRoute == route;
+    
     return ListTile(
-      leading: Icon(icon),
-      title: Text(label),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      leading: Icon(
+        icon,
+        color: isActive 
+            ? Theme.of(context).colorScheme.primary 
+            : Colors.grey[700],
+      ),
+      title: Text(
+        label,
+        style: TextStyle(
+          fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+          color: isActive 
+              ? Theme.of(context).colorScheme.primary 
+              : Colors.black87,
+        ),
+      ),
+      trailing: isActive 
+          ? Icon(
+              Icons.check_circle,
+              size: 20,
+              color: Theme.of(context).colorScheme.primary,
+            )
+          : const Icon(Icons.chevron_right, size: 20, color: Colors.grey),
       onTap: () {
-        context.go(route);
         Navigator.pop(context);
+        context.go(route);
       },
     );
   }
@@ -248,18 +284,164 @@ class _AccountButton extends StatelessWidget {
         final isLoggedIn = snapshot.hasData && snapshot.data != null;
         
         if (isLoggedIn) {
-          // Show account menu when logged in
-          return _NavItem(
-            label: 'Tài khoản',
-            route: '/profile',
-            icon: Icons.person,
-          );
+          // Show account menu with logout option when logged in
+          return _AccountMenuButton(isMobile: isMobile);
         } else {
           // Show login button when not logged in
           return _LoginButton(isMobile: isMobile);
         }
       },
     );
+  }
+}
+
+class _AccountMenuButton extends StatefulWidget {
+  final bool isMobile;
+  final AuthService _authService = AuthService();
+
+  _AccountMenuButton({required this.isMobile});
+
+  @override
+  State<_AccountMenuButton> createState() => _AccountMenuButtonState();
+}
+
+class _AccountMenuButtonState extends State<_AccountMenuButton> {
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _showAccountMenu(context),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.person,
+              size: 18,
+              color: AppColors.headerNavInactive,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              'Tài khoản',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.normal,
+                    color: AppColors.headerNavInactive,
+                  ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.arrow_drop_down,
+              size: 18,
+              color: AppColors.headerNavInactive,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAccountMenu(BuildContext context) {
+    if (widget.isMobile) {
+      // Mobile: Show bottom sheet
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: Colors.transparent,
+        builder: (context) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle bar
+              Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      leading: const Icon(Icons.logout, color: Colors.red),
+                      title: const Text(
+                        'Đăng xuất',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                      onTap: () async {
+                        Navigator.pop(context);
+                        try {
+                          await widget._authService.signOut();
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Lỗi: $e')),
+                            );
+                          }
+                        }
+                      },
+                    ),
+                    SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    } else {
+      // Desktop: Show popup menu
+      final RenderBox renderBox = context.findRenderObject() as RenderBox;
+      final Offset offset = renderBox.localToGlobal(Offset.zero);
+      
+      showMenu(
+        context: context,
+        position: RelativeRect.fromLTRB(
+          offset.dx,
+          offset.dy + renderBox.size.height,
+          offset.dx + renderBox.size.width,
+          offset.dy + renderBox.size.height + 100,
+        ),
+        items: [
+          PopupMenuItem(
+            child: Row(
+              children: [
+                const Icon(Icons.logout, size: 18),
+                const SizedBox(width: 8),
+                const Text('Đăng xuất'),
+              ],
+            ),
+            onTap: () async {
+              // Delay to allow menu to close first
+              await Future.delayed(const Duration(milliseconds: 100));
+              try {
+                await widget._authService.signOut();
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Lỗi: $e')),
+                  );
+                }
+              }
+            },
+          ),
+        ],
+      );
+    }
   }
 }
 
@@ -321,8 +503,9 @@ class _LoginButton extends StatelessWidget {
 
 class _MobileAccountButton extends StatelessWidget {
   final AuthService _authService = AuthService();
+  final String currentRoute;
 
-  _MobileAccountButton();
+  _MobileAccountButton({required this.currentRoute});
 
   @override
   Widget build(BuildContext context) {
@@ -332,22 +515,86 @@ class _MobileAccountButton extends StatelessWidget {
         final isLoggedIn = snapshot.hasData && snapshot.data != null;
         
         if (isLoggedIn) {
-          return _MobileNavItem(
-            label: 'Tài khoản',
-            icon: Icons.person,
-            route: '/profile',
+          return ListTile(
+            leading: const Icon(Icons.person),
+            title: const Text('Tài khoản'),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () {
+              Navigator.pop(context); // Close bottom sheet first
+              _showAccountMenu(context);
+            },
           );
         } else {
           return ListTile(
             leading: const Icon(Icons.login),
             title: const Text('Đăng nhập'),
             onTap: () {
-              context.go('/login');
               Navigator.pop(context);
+              context.go('/login');
             },
           );
         }
       },
+    );
+  }
+
+  void _showAccountMenu(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle bar
+            Container(
+              margin: const EdgeInsets.only(top: 12, bottom: 8),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    leading: const Icon(Icons.logout, color: Colors.red),
+                    title: const Text(
+                      'Đăng xuất',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                    onTap: () async {
+                      Navigator.pop(sheetContext);
+                      try {
+                        await _authService.signOut();
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Lỗi: $e')),
+                          );
+                        }
+                      }
+                    },
+                  ),
+                  SizedBox(height: MediaQuery.of(sheetContext).padding.bottom + 8),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:responsive_framework/responsive_framework.dart';
+import 'package:fl_chart/fl_chart.dart';
+import '../../services/order_service.dart';
+import '../../services/product_service.dart';
+import '../../services/auth_service.dart';
 
 class AdminDashboardPage extends StatelessWidget {
   const AdminDashboardPage({super.key});
@@ -36,9 +40,6 @@ class AdminDashboardPage extends StatelessWidget {
           SizedBox(height: isMobile ? 24 : 32),
           // Charts section
           _ChartsSection(isMobile: isMobile, isTablet: isTablet),
-          SizedBox(height: isMobile ? 24 : 32),
-          // Recent activities
-          _RecentActivities(isMobile: isMobile, isTablet: isTablet),
         ],
       ),
     );
@@ -56,59 +57,107 @@ class _StatsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final stats = [
-      {
-        'title': 'Tổng đơn hàng',
-        'value': '1,234',
-        'change': '+12.5%',
-        'icon': Icons.shopping_cart,
-        'color': Colors.blue,
-      },
-      {
-        'title': 'Tổng doanh thu',
-        'value': '2.5 tỷ',
-        'change': '+8.2%',
-        'icon': Icons.attach_money,
-        'color': Colors.green,
-      },
-      {
-        'title': 'Sản phẩm',
-        'value': '456',
-        'change': '+5.1%',
-        'icon': Icons.inventory_2,
-        'color': Colors.orange,
-      },
-      {
-        'title': 'Người dùng',
-        'value': '3,789',
-        'change': '+15.3%',
-        'icon': Icons.people,
-        'color': Colors.purple,
-      },
-    ];
+    final _orderService = OrderService();
+    final _productService = ProductService();
+    final _authService = AuthService();
 
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: isMobile ? 1 : (isTablet ? 2 : 4),
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: isMobile ? 2.5 : 1.5,
-      ),
-      itemCount: stats.length,
-      itemBuilder: (context, index) {
-        final stat = stats[index];
-        return _StatCard(
-          title: stat['title'] as String,
-          value: stat['value'] as String,
-          change: stat['change'] as String,
-          icon: stat['icon'] as IconData,
-          color: stat['color'] as Color,
-          isMobile: isMobile,
+    return StreamBuilder(
+      stream: _orderService.getAllOrders(),
+      builder: (context, orderSnapshot) {
+        return StreamBuilder(
+          stream: _productService.getProducts(),
+          builder: (context, productSnapshot) {
+            return StreamBuilder(
+              stream: _authService.authStateChanges,
+              builder: (context, userSnapshot) {
+                // Calculate stats
+                final orders = orderSnapshot.data ?? [];
+                final products = productSnapshot.data ?? [];
+                final totalRevenue = orders
+                    .where((order) => order.status.value == 'completed')
+                    .fold<int>(0, (sum, order) => sum + order.total);
+                
+                // Calculate changes (simplified - compare with previous period)
+                final completedOrders = orders.where((o) => o.status.value == 'completed').length;
+                final pendingOrders = orders.where((o) => o.status.value == 'pending').length;
+                
+                final stats = [
+                  {
+                    'title': 'Tổng đơn hàng',
+                    'value': _formatNumber(orders.length),
+                    'change': '+${pendingOrders} đang chờ',
+                    'icon': Icons.shopping_cart,
+                    'color': Colors.blue,
+                  },
+                  {
+                    'title': 'Tổng doanh thu',
+                    'value': _formatPrice(totalRevenue),
+                    'change': '${completedOrders} đơn hoàn thành',
+                    'icon': Icons.attach_money,
+                    'color': Colors.green,
+                  },
+                  {
+                    'title': 'Sản phẩm',
+                    'value': _formatNumber(products.length),
+                    'change': '${products.where((p) => p.status == 'Còn hàng').length} còn hàng',
+                    'icon': Icons.inventory_2,
+                    'color': Colors.orange,
+                  },
+                  {
+                    'title': 'Đơn hoàn thành',
+                    'value': _formatNumber(completedOrders),
+                    'change': '${((completedOrders / (orders.isEmpty ? 1 : orders.length)) * 100).toStringAsFixed(1)}%',
+                    'icon': Icons.check_circle,
+                    'color': Colors.purple,
+                  },
+                ];
+
+                return GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: isMobile ? 1 : (isTablet ? 2 : 4),
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: isMobile ? 2.5 : 1.5,
+                  ),
+                  itemCount: stats.length,
+                  itemBuilder: (context, index) {
+                    final stat = stats[index];
+                    return _StatCard(
+                      title: stat['title'] as String,
+                      value: stat['value'] as String,
+                      change: stat['change'] as String,
+                      icon: stat['icon'] as IconData,
+                      color: stat['color'] as Color,
+                      isMobile: isMobile,
+                    );
+                  },
+                );
+              },
+            );
+          },
         );
       },
     );
+  }
+
+  String _formatNumber(int number) {
+    return number.toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]}.',
+    );
+  }
+
+  String _formatPrice(int price) {
+    if (price >= 1000000000) {
+      return '${(price / 1000000000).toStringAsFixed(1)} tỷ';
+    } else if (price >= 1000000) {
+      return '${(price / 1000000).toStringAsFixed(1)} triệu';
+    } else if (price >= 1000) {
+      return '${(price / 1000).toStringAsFixed(1)}k';
+    }
+    return price.toString();
   }
 }
 
@@ -222,11 +271,13 @@ class _ChartsSection extends StatelessWidget {
               _ChartCard(
                 title: 'Doanh thu theo tháng',
                 isMobile: isMobile,
+                chartType: 'revenue',
               ),
               const SizedBox(height: 16),
               _ChartCard(
                 title: 'Đơn hàng theo ngày',
                 isMobile: isMobile,
+                chartType: 'orders',
               ),
             ],
           )
@@ -237,6 +288,7 @@ class _ChartsSection extends StatelessWidget {
                 child: _ChartCard(
                   title: 'Doanh thu theo tháng',
                   isMobile: isMobile,
+                  chartType: 'revenue',
                 ),
               ),
               const SizedBox(width: 16),
@@ -244,6 +296,7 @@ class _ChartsSection extends StatelessWidget {
                 child: _ChartCard(
                   title: 'Đơn hàng theo ngày',
                   isMobile: isMobile,
+                  chartType: 'orders',
                 ),
               ),
             ],
@@ -256,14 +309,18 @@ class _ChartsSection extends StatelessWidget {
 class _ChartCard extends StatelessWidget {
   final String title;
   final bool isMobile;
+  final String chartType; // 'revenue' or 'orders'
 
   const _ChartCard({
     required this.title,
     required this.isMobile,
+    required this.chartType,
   });
 
   @override
   Widget build(BuildContext context) {
+    final _orderService = OrderService();
+
     return Card(
       elevation: 2,
       child: Padding(
@@ -279,114 +336,292 @@ class _ChartCard extends StatelessWidget {
                   ),
             ),
             const SizedBox(height: 24),
-            // Placeholder for chart
-            Container(
-              height: isMobile ? 200 : 250,
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.bar_chart,
-                      size: isMobile ? 48 : 64,
-                      color: Colors.grey[400],
+            StreamBuilder(
+              stream: _orderService.getAllOrders(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Container(
+                    height: isMobile ? 200 : 250,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Biểu đồ sẽ được hiển thị ở đây',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: isMobile ? 12 : 14,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+                    child: const Center(child: CircularProgressIndicator()),
+                  );
+                }
+
+                final orders = snapshot.data ?? [];
+                final chartData = chartType == 'revenue'
+                    ? _getRevenueData(orders)
+                    : _getOrdersData(orders);
+
+                return Container(
+                  height: isMobile ? 200 : 250,
+                  padding: const EdgeInsets.all(8),
+                  child: chartType == 'revenue'
+                      ? _buildRevenueChart(chartData, isMobile)
+                      : _buildOrdersChart(chartData, isMobile),
+                );
+              },
             ),
           ],
         ),
       ),
     );
   }
-}
 
-class _RecentActivities extends StatelessWidget {
-  final bool isMobile;
-  final bool isTablet;
+  List<Map<String, dynamic>> _getRevenueData(List orders) {
+    final now = DateTime.now();
+    final data = List.generate(6, (index) {
+      final date = DateTime(now.year, now.month - 5 + index, 1);
+      final monthOrders = orders.where((order) {
+        final orderDate = order.createdAt;
+        return orderDate.year == date.year &&
+            orderDate.month == date.month &&
+            order.status.value == 'completed';
+      }).toList();
+      final revenue = monthOrders.fold<double>(0.0, (sum, order) => sum + order.total.toDouble());
+      return {
+        'month': '${date.month}/${date.year}',
+        'value': revenue.toDouble(),
+      };
+    });
+    return data;
+  }
 
-  const _RecentActivities({
-    required this.isMobile,
-    required this.isTablet,
-  });
+  List<Map<String, dynamic>> _getOrdersData(List orders) {
+    final now = DateTime.now();
+    final data = List.generate(7, (index) {
+      final date = now.subtract(Duration(days: 6 - index));
+      final dayOrders = orders.where((order) {
+        final orderDate = order.createdAt;
+        return orderDate.year == date.year &&
+            orderDate.month == date.month &&
+            orderDate.day == date.day;
+      }).toList();
+      return {
+        'day': '${date.day}/${date.month}',
+        'value': dayOrders.length.toDouble(),
+      };
+    });
+    return data;
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    final activities = [
-      {'user': 'Nguyễn Văn A', 'action': 'Đã đặt hàng', 'time': '5 phút trước'},
-      {'user': 'Trần Thị B', 'action': 'Đã hủy đơn hàng', 'time': '15 phút trước'},
-      {'user': 'Lê Văn C', 'action': 'Đã thanh toán', 'time': '30 phút trước'},
-      {'user': 'Phạm Thị D', 'action': 'Đã đặt hàng', 'time': '1 giờ trước'},
-      {'user': 'Hoàng Văn E', 'action': 'Đã đánh giá sản phẩm', 'time': '2 giờ trước'},
-    ];
+  Widget _buildRevenueChart(List<Map<String, dynamic>> data, bool isMobile) {
+    final maxValue = data.map((e) => e['value'] as double).reduce((a, b) => a > b ? a : b);
+    final spots = data.asMap().entries.map((entry) {
+      return FlSpot(entry.key.toDouble(), entry.value['value'] as double);
+    }).toList();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Hoạt động gần đây',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                fontSize: isMobile ? 18 : 20,
-              ),
-        ),
-        const SizedBox(height: 16),
-        Card(
-          elevation: 2,
-          child: ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: activities.length,
-            separatorBuilder: (context, index) => const Divider(height: 1),
-            itemBuilder: (context, index) {
-              final activity = activities[index];
-              return ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                  child: Icon(
-                    Icons.person,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-                title: Text(
-                  activity['user'] as String,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: isMobile ? 14 : 15,
-                  ),
-                ),
-                subtitle: Text(
-                  activity['action'] as String,
-                  style: TextStyle(
-                    fontSize: isMobile ? 12 : 13,
-                  ),
-                ),
-                trailing: Text(
-                  activity['time'] as String,
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: isMobile ? 11 : 12,
-                  ),
-                ),
-              );
-            },
+    return BarChart(
+      BarChartData(
+        alignment: BarChartAlignment.spaceAround,
+        maxY: maxValue * 1.2,
+        barTouchData: BarTouchData(
+          enabled: true,
+          touchTooltipData: BarTouchTooltipData(
+            getTooltipColor: (group) => Colors.grey[800]!,
+            tooltipRoundedRadius: 8,
+            tooltipPadding: const EdgeInsets.all(8),
           ),
         ),
-      ],
+        titlesData: FlTitlesData(
+          show: true,
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                if (value.toInt() >= 0 && value.toInt() < data.length) {
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      data[value.toInt()]['month'] as String,
+                      style: TextStyle(
+                        color: Colors.grey[700],
+                        fontSize: isMobile ? 10 : 12,
+                      ),
+                    ),
+                  );
+                }
+                return const Text('');
+              },
+              reservedSize: 30,
+            ),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 50,
+              getTitlesWidget: (value, meta) {
+                return Text(
+                  _formatPrice(value),
+                  style: TextStyle(
+                    color: Colors.grey[700],
+                    fontSize: isMobile ? 10 : 12,
+                  ),
+                );
+              },
+            ),
+          ),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+        ),
+        borderData: FlBorderData(show: false),
+        barGroups: spots.asMap().entries.map((entry) {
+          return BarChartGroupData(
+            x: entry.key,
+            barRods: [
+              BarChartRodData(
+                toY: entry.value.y,
+                color: Colors.green[400],
+                width: isMobile ? 16 : 20,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(4),
+                ),
+              ),
+            ],
+          );
+        }).toList(),
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          horizontalInterval: maxValue / 5,
+          getDrawingHorizontalLine: (value) {
+            return FlLine(
+              color: Colors.grey[200]!,
+              strokeWidth: 1,
+            );
+          },
+        ),
+      ),
     );
   }
+
+  Widget _buildOrdersChart(List<Map<String, dynamic>> data, bool isMobile) {
+    final maxValue = data.map((e) => e['value'] as double).reduce((a, b) => a > b ? a : b);
+    final spots = data.asMap().entries.map((entry) {
+      return FlSpot(entry.key.toDouble(), entry.value['value'] as double);
+    }).toList();
+
+    return LineChart(
+      LineChartData(
+        lineTouchData: LineTouchData(
+          enabled: true,
+          touchTooltipData: LineTouchTooltipData(
+            getTooltipColor: (touchedSpot) => Colors.grey[800]!,
+            tooltipRoundedRadius: 8,
+            tooltipPadding: const EdgeInsets.all(8),
+          ),
+        ),
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          horizontalInterval: maxValue > 0 ? maxValue / 5 : 1,
+          getDrawingHorizontalLine: (value) {
+            return FlLine(
+              color: Colors.grey[200]!,
+              strokeWidth: 1,
+            );
+          },
+        ),
+        titlesData: FlTitlesData(
+          show: true,
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                if (value.toInt() >= 0 && value.toInt() < data.length) {
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      data[value.toInt()]['day'] as String,
+                      style: TextStyle(
+                        color: Colors.grey[700],
+                        fontSize: isMobile ? 10 : 12,
+                      ),
+                    ),
+                  );
+                }
+                return const Text('');
+              },
+              reservedSize: 30,
+            ),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 40,
+              getTitlesWidget: (value, meta) {
+                return Text(
+                  value.toInt().toString(),
+                  style: TextStyle(
+                    color: Colors.grey[700],
+                    fontSize: isMobile ? 10 : 12,
+                  ),
+                );
+              },
+            ),
+          ),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+        ),
+        borderData: FlBorderData(
+          show: true,
+          border: Border(
+            bottom: BorderSide(color: Colors.grey[300]!, width: 1),
+            left: BorderSide(color: Colors.grey[300]!, width: 1),
+          ),
+        ),
+        minX: 0,
+        maxX: (data.length - 1).toDouble(),
+        minY: 0,
+        maxY: maxValue * 1.2,
+        lineBarsData: [
+          LineChartBarData(
+            spots: spots,
+            isCurved: true,
+            color: Colors.blue[400],
+            barWidth: 3,
+            isStrokeCapRound: true,
+            dotData: FlDotData(
+              show: true,
+              getDotPainter: (spot, percent, barData, index) {
+                return FlDotCirclePainter(
+                  radius: 4,
+                  color: Colors.blue[600]!,
+                  strokeWidth: 2,
+                  strokeColor: Colors.white,
+                );
+              },
+            ),
+            belowBarData: BarAreaData(
+              show: true,
+              color: Colors.blue[50],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatPrice(double price) {
+    if (price >= 1000000000) {
+      return '${(price / 1000000000).toStringAsFixed(1)}T';
+    } else if (price >= 1000000) {
+      return '${(price / 1000000).toStringAsFixed(1)}M';
+    } else if (price >= 1000) {
+      return '${(price / 1000).toStringAsFixed(1)}K';
+    }
+    return price.toInt().toString();
+  }
 }
+
 

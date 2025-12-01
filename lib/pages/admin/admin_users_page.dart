@@ -245,17 +245,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
                             fontSize: isTablet ? 22 : 28,
                           ),
                     ),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        // TODO: Add new user
-                      },
-                      icon: const Icon(Icons.person_add),
-                      label: Text(isTablet ? 'Thêm' : 'Thêm người dùng'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
+                  
                   ],
                 ),
                 const SizedBox(height: 24),

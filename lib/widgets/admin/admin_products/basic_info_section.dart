@@ -17,6 +17,7 @@ class BasicInfoSection extends StatefulWidget {
   final ValueChanged<String?> onChildCategoryChanged;
   final ValueChanged<String?> onStatusChanged;
   final bool isTablet;
+  final bool isMobile;
 
   const BasicInfoSection({
     super.key,
@@ -33,6 +34,7 @@ class BasicInfoSection extends StatefulWidget {
     required this.onChildCategoryChanged,
     required this.onStatusChanged,
     required this.isTablet,
+    this.isMobile = false,
   });
 
   @override
@@ -117,6 +119,7 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
                 return null;
               },
               isTablet: widget.isTablet,
+              isMobile: widget.isMobile,
             ),
             const SizedBox(height: 16),
             if (widget.selectedParentCategoryId != null && widget.childCategories.isNotEmpty)
@@ -127,6 +130,7 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
                 itemLabels: ['Không có', ...widget.childCategories.map((cat) => cat.name).toList()],
                 onChanged: widget.onChildCategoryChanged,
                 isTablet: widget.isTablet,
+                isMobile: widget.isMobile,
               ),
             if (widget.selectedParentCategoryId != null && widget.childCategories.isNotEmpty)
               const SizedBox(height: 16),
@@ -276,6 +280,7 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
                       return null;
                     },
                     isTablet: widget.isTablet,
+                    isMobile: widget.isMobile,
                   ),
                 ),
               ],

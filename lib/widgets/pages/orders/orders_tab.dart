@@ -65,17 +65,33 @@ class OrdersTab extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.receipt_long_outlined,
-                  size: 64,
-                  color: Colors.grey[400],
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.receipt_long_outlined,
+                    size: 64,
+                    color: Colors.grey[400],
+                  ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
                 Text(
                   'Chưa có đơn hàng ${status.customerDisplayName}',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: Colors.grey[600],
+                        color: Colors.grey[700],
+                        fontWeight: FontWeight.w600,
                       ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Các đơn hàng ${status.customerDisplayName.toLowerCase()} sẽ hiển thị ở đây',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.grey[500],
+                      ),
+                  textAlign: TextAlign.center,
                 ),
               ],
             ),

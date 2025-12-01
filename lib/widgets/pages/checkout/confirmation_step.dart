@@ -12,20 +12,24 @@ import 'order_success_dialog.dart';
 
 class ConfirmationStep extends StatefulWidget {
   final VoidCallback onBack;
+  final VoidCallback? onOrderPlaced; // Callback khi đặt hàng thành công
   final String? fullName;
   final String? phone;
   final String? address;
   final String? notes;
   final PaymentMethod? paymentMethod;
+  final List<CartItemModel>? specificItems; // Items cụ thể để checkout (nếu null thì lấy tất cả từ cart)
 
   const ConfirmationStep({
     super.key,
     required this.onBack,
+    this.onOrderPlaced,
     this.fullName,
     this.phone,
     this.address,
     this.notes,
     this.paymentMethod,
+    this.specificItems,
   });
 
   @override
@@ -53,8 +57,14 @@ class _ConfirmationStepState extends State<ConfirmationStep> {
     });
 
     try {
-      // Lấy cart items
-      final cartItems = await _cartService.getCartItemsOnce();
+      // Lấy cart items - nếu có specificItems thì dùng nó, không thì lấy tất cả từ cart
+      final List<CartItemModel> cartItems;
+      if (widget.specificItems != null && widget.specificItems!.isNotEmpty) {
+        cartItems = widget.specificItems!;
+      } else {
+        cartItems = await _cartService.getCartItemsOnce();
+      }
+      
       if (cartItems.isEmpty) {
         throw 'Giỏ hàng trống';
       }
@@ -81,8 +91,23 @@ class _ConfirmationStepState extends State<ConfirmationStep> {
         shippingFee: shippingFee,
       );
 
-      // Xóa giỏ hàng
-      await _cartService.clearCart();
+      // Xóa items khỏi giỏ hàng
+      if (widget.specificItems != null && widget.specificItems!.isNotEmpty) {
+        // Chỉ xóa các items cụ thể (có id)
+        for (final item in widget.specificItems!) {
+          if (item.id.isNotEmpty) {
+            await _cartService.removeFromCart(item.id);
+          }
+        }
+      } else {
+        // Xóa toàn bộ giỏ hàng (trường hợp checkout từ cart page)
+        await _cartService.clearCart();
+      }
+
+      // Gọi callback để đánh dấu đã đặt hàng
+      if (widget.onOrderPlaced != null) {
+        widget.onOrderPlaced!();
+      }
 
       // Hiển thị popup thành công
       if (mounted) {
@@ -116,6 +141,13 @@ class _ConfirmationStepState extends State<ConfirmationStep> {
   Widget build(BuildContext context) {
     final isMobile = ResponsiveBreakpoints.of(context).isMobile;
 
+    // Nếu có specificItems, dùng nó trực tiếp, không cần stream
+    if (widget.specificItems != null && widget.specificItems!.isNotEmpty) {
+      final cartItems = widget.specificItems!;
+      return _buildContent(isMobile, cartItems);
+    }
+
+    // Nếu không có specificItems, lấy từ cart stream
     return StreamBuilder<List<CartItemModel>>(
       stream: _cartService.getCartItems(),
       builder: (context, cartSnapshot) {
@@ -130,10 +162,16 @@ class _ConfirmationStepState extends State<ConfirmationStep> {
         }
 
         final cartItems = cartSnapshot.data ?? [];
+        return _buildContent(isMobile, cartItems);
+      },
+    );
+  }
 
-        if (isMobile) {
-          // Mobile: Stack vertically
-          return Column(
+  Widget _buildContent(bool isMobile, List<CartItemModel> cartItems) {
+
+    if (isMobile) {
+      // Mobile: Stack vertically
+      return Column(
             children: [
               // Delivery info
               if (widget.fullName != null && widget.phone != null && widget.address != null)
@@ -184,11 +222,11 @@ class _ConfirmationStepState extends State<ConfirmationStep> {
                   ),
                 ],
               ),
-            ],
-          );
-        } else {
-          // Desktop: Grid layout
-          return Column(
+      ],
+    );
+    } else {
+      // Desktop: Grid layout
+      return Column(
             children: [
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -253,10 +291,8 @@ class _ConfirmationStepState extends State<ConfirmationStep> {
                   ),
                 ],
               ),
-            ],
-          );
-        }
-      },
+      ],
     );
+    }
   }
 }

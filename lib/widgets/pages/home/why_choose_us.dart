@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:responsive_framework/responsive_framework.dart';
+import '../../../config/colors.dart';
 
 class WhyChooseUs extends StatelessWidget {
   const WhyChooseUs({super.key});
@@ -19,7 +20,7 @@ class WhyChooseUs extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      color: Theme.of(context).colorScheme.surfaceVariant,
+      color: AppColors.headerBackground,
       padding: EdgeInsets.symmetric(
         horizontal: isMobile ? 16 : 24,
         vertical: isMobile ? 24 : 32,
@@ -35,6 +36,7 @@ class WhyChooseUs extends StatelessWidget {
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                     fontSize: isMobile ? 20 : 24,
+                    color: AppColors.headerText,
                   ),
             ),
           ),
@@ -98,7 +100,7 @@ class _FeatureItem extends StatelessWidget {
           Icon(
             icon,
             size: isMobile ? 40 : 48,
-            color: Theme.of(context).colorScheme.primary,
+            color: AppColors.headerText,
           ),
           SizedBox(height: isMobile ? 6 : 8),
           Text(
@@ -106,6 +108,7 @@ class _FeatureItem extends StatelessWidget {
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   fontSize: isMobile ? 16 : 18,
+                  color: AppColors.headerText,
                 ),
             textAlign: TextAlign.center,
           ),
@@ -114,6 +117,7 @@ class _FeatureItem extends StatelessWidget {
             desc,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   fontSize: isMobile ? 14 : 16,
+                  color: AppColors.headerText,
                 ),
             textAlign: TextAlign.center,
           ),

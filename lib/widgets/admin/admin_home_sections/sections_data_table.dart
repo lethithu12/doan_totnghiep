@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:data_table_2/data_table_2.dart';
 import '../../../models/home_section_model.dart';
+import '../../../config/colors.dart';
 import 'sections_data_source.dart';
 
 class SectionsDataTable extends StatelessWidget {
@@ -22,31 +23,75 @@ class SectionsDataTable extends StatelessWidget {
       columnSpacing: 12,
       horizontalMargin: 12,
       rowsPerPage: 10,
-      columns: const [
+      headingRowColor: WidgetStateProperty.all(AppColors.headerBackground),
+      headingRowHeight: 56,
+      columns: [
         DataColumn2(
-          label: Text('Tiêu đề'),
+          label: Text(
+            'Tiêu đề',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
           size: ColumnSize.L,
         ),
         DataColumn2(
-          label: Text('Số sản phẩm'),
+          label: Text(
+            'Số sản phẩm',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
           size: ColumnSize.S,
           numeric: true,
         ),
         DataColumn2(
-          label: Text('Thứ tự'),
+          label: Text(
+            'Thứ tự',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
           size: ColumnSize.S,
           numeric: true,
         ),
         DataColumn2(
-          label: Text('Trạng thái'),
+          label: Text(
+            'Trạng thái',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
           size: ColumnSize.M,
         ),
         DataColumn2(
-          label: Text('Thời gian hiển thị'),
+          label: Text(
+            'Thời gian hiển thị',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
           size: ColumnSize.L,
         ),
         DataColumn2(
-          label: Text('Hành động'),
+          label: Text(
+            'Hành động',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
           size: ColumnSize.S,
         ),
       ],

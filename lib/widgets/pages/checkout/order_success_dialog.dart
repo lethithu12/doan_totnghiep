@@ -653,12 +653,12 @@ class _QRCodeSection extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Số điện thoại: 0833183077',
+                          'Số điện thoại: 0356942506',
                           style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Tên: Phạm Văn Phong',
+                          'Tên: Lê Thị Thu Trang',
                           style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                         ),
                         const SizedBox(height: 4),
@@ -1003,12 +1003,12 @@ class _MobileQRCodeSection extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Số điện thoại: 0833183077',
+                  'Số điện thoại: 0356942506',
                   style: TextStyle(fontSize: 11, color: Colors.grey[700]),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Tên: Phạm Văn Phong',
+                  'Tên: Lê Thị Thu Trang',
                   style: TextStyle(fontSize: 11, color: Colors.grey[700]),
                 ),
                 const SizedBox(height: 4),

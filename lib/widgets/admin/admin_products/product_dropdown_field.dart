@@ -8,6 +8,7 @@ class ProductDropdownField<T> extends StatelessWidget {
   final ValueChanged<T?> onChanged;
   final String? Function(T?)? validator;
   final bool isTablet;
+  final bool isMobile;
 
   const ProductDropdownField({
     super.key,
@@ -18,12 +19,14 @@ class ProductDropdownField<T> extends StatelessWidget {
     required this.onChanged,
     this.validator,
     required this.isTablet,
+    this.isMobile = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<T>(
       value: value,
+      isExpanded: true, // Tránh overflow trên mobile
       decoration: InputDecoration(
         labelText: label,
         border: OutlineInputBorder(
@@ -34,6 +37,8 @@ class ProductDropdownField<T> extends StatelessWidget {
           vertical: isTablet ? 12 : 16,
         ),
       ),
+      menuMaxHeight: isMobile ? MediaQuery.of(context).size.height * 0.4 : null, // Giới hạn chiều cao menu trên mobile
+      itemHeight: isMobile ? 48.0 : null, // Chiều cao item trên mobile
       items: items.asMap().entries.map((entry) {
         final index = entry.key;
         final item = entry.value;
@@ -42,7 +47,14 @@ class ProductDropdownField<T> extends StatelessWidget {
             : item.toString();
         return DropdownMenuItem<T>(
           value: item,
-          child: Text(label),
+          child: Text(
+            label,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 2,
+            style: TextStyle(
+              fontSize: isMobile ? 14 : null,
+            ),
+          ),
         );
       }).toList(),
       onChanged: onChanged,

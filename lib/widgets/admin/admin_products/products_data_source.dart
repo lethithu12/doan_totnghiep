@@ -36,7 +36,8 @@ class ProductsDataSource extends DataTableSource {
     if (index >= products.length) return null;
 
     final product = products[index];
-    final isInStock = product.status == 'Còn hàng';
+    final calculatedStatus = product.calculatedStatus;
+    final isInStock = calculatedStatus == 'Còn hàng';
     final discount = product.discount;
     final categoryName = _getCategoryName(product.categoryId);
 
@@ -164,7 +165,7 @@ class ProductsDataSource extends DataTableSource {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              product.status,
+              calculatedStatus,
               style: TextStyle(
                 color: isInStock ? Colors.green[700] : Colors.red[700],
                 fontSize: 12,

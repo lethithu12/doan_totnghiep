@@ -20,7 +20,10 @@ class ProductOptionsSection extends StatelessWidget {
   final VoidCallback onAddColor;
   final Function(int) onRemoveColor;
   final VoidCallback onAddOption;
+  final Function(int)? onEditOption;
+  final VoidCallback? onCancelEditOption;
   final Function(int) onRemoveOption;
+  final int? editingOptionIndex; // null = đang thêm mới, not null = đang chỉnh sửa
   final bool isTablet;
   final bool isMobile;
 
@@ -45,7 +48,10 @@ class ProductOptionsSection extends StatelessWidget {
     required this.onAddColor,
     required this.onRemoveColor,
     required this.onAddOption,
+    this.onEditOption,
+    this.onCancelEditOption,
     required this.onRemoveOption,
+    this.editingOptionIndex,
     required this.isTablet,
     required this.isMobile,
   });
@@ -399,10 +405,24 @@ class ProductOptionsSection extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
+                  if (editingOptionIndex != null && onCancelEditOption != null)
+                    ElevatedButton.icon(
+                      onPressed: onCancelEditOption,
+                      icon: const Icon(Icons.cancel),
+                      label: const Text('Hủy'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        backgroundColor: Colors.grey,
+                        foregroundColor: Colors.white,
+                      ),
+                    )
+                  else
+                    const SizedBox.shrink(),
+                  if (editingOptionIndex != null) const SizedBox(width: 8),
                   ElevatedButton.icon(
                     onPressed: onAddOption,
-                    icon: const Icon(Icons.add),
-                    label: const Text('Thêm'),
+                    icon: Icon(editingOptionIndex != null ? Icons.save : Icons.add),
+                    label: Text(editingOptionIndex != null ? 'Cập nhật' : 'Thêm'),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     ),
@@ -430,13 +450,21 @@ class ProductOptionsSection extends StatelessWidget {
                 final discount = option['discount'] as int;
                 final quantity = option['quantity'] as int? ?? 0;
                 final finalPrice = originalPrice - (originalPrice * discount ~/ 100);
+                final isEditing = editingOptionIndex == index;
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
                   padding: EdgeInsets.all(isTablet ? 12 : 16),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+                    color: isEditing
+                        ? Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3)
+                        : Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey[300]!),
+                    border: Border.all(
+                      color: isEditing
+                          ? Theme.of(context).colorScheme.primary
+                          : Colors.grey[300]!,
+                      width: isEditing ? 2 : 1,
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -456,12 +484,34 @@ class ProductOptionsSection extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              '$version - $colorName',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: isTablet ? 14 : 16,
-                              ),
+                            Row(
+                              children: [
+                                Text(
+                                  '$version - $colorName',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: isTablet ? 14 : 16,
+                                  ),
+                                ),
+                                if (isEditing) ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context).colorScheme.primary,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      'Đang chỉnh sửa',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                             const SizedBox(height: 4),
                             if (isMobile)
@@ -543,11 +593,25 @@ class ProductOptionsSection extends StatelessWidget {
                           ],
                         ),
                       ),
-                      // Remove button
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => onRemoveOption(index),
-                        tooltip: 'Xóa option',
+                      // Action buttons
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (onEditOption != null)
+                            IconButton(
+                              icon: Icon(
+                                Icons.edit,
+                                color: editingOptionIndex == index ? Colors.orange : Colors.blue,
+                              ),
+                              onPressed: () => onEditOption!(index),
+                              tooltip: editingOptionIndex == index ? 'Đang chỉnh sửa' : 'Chỉnh sửa option',
+                            ),
+                          IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () => onRemoveOption(index),
+                            tooltip: 'Xóa option',
+                          ),
+                        ],
                       ),
                     ],
                   ),

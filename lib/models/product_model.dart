@@ -49,6 +49,26 @@ class ProductModel {
     return 0;
   }
 
+  // Tính số lượng thực tế: nếu có options thì tính tổng số lượng options, nếu không thì dùng quantity
+  int get actualQuantity {
+    if (options != null && options!.isNotEmpty) {
+      // Tính tổng số lượng từ tất cả options
+      int total = 0;
+      for (var option in options!) {
+        final optionQuantity = option['quantity'] as int? ?? 0;
+        total += optionQuantity;
+      }
+      return total;
+    }
+    // Nếu không có options, dùng số lượng trong tab thông tin
+    return quantity;
+  }
+
+  // Tính trạng thái dựa trên số lượng thực tế
+  String get calculatedStatus {
+    return actualQuantity > 0 ? 'Còn hàng' : 'Hết hàng';
+  }
+
   // Convert to Map for Firebase
   Map<String, dynamic> toMap() {
     return {

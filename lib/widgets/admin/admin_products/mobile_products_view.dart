@@ -91,7 +91,8 @@ class MobileProductsView extends StatelessWidget {
           const SizedBox(height: 16),
           // Mobile list view
           ...products.map((product) {
-            final isInStock = product.status == 'Còn hàng';
+            final calculatedStatus = product.calculatedStatus;
+            final isInStock = calculatedStatus == 'Còn hàng';
             final discount = product.discount;
             final categoryName = _getCategoryName(product.categoryId);
             return Card(
@@ -219,7 +220,7 @@ class MobileProductsView extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
-                                  product.status,
+                                  calculatedStatus,
                                   style: TextStyle(
                                     color: isInStock ? Colors.green[700] : Colors.red[700],
                                     fontSize: 10,

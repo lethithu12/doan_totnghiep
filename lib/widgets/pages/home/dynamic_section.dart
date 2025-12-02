@@ -98,107 +98,143 @@ class DynamicSection extends StatelessWidget {
                   final isMobile =
                       ResponsiveBreakpoints.of(context).isMobile;
                   final discount = product.discount;
+                  final isOutOfStock = product.calculatedStatus == 'Hết hàng';
 
                   return Card(
                     color: Colors.white,
                     clipBehavior: Clip.antiAlias,
-                    child: InkWell(
-                      onTap: () {
-                        if (product.id.isNotEmpty) {
-                          context.go('/products/${product.id}');
-                        }
-                      },
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          // Tính toán chiều cao hình ảnh dựa trên tỉ lệ
-                          final imageHeight = constraints.maxHeight * 0.6;
-                          final contentHeight = constraints.maxHeight * 0.4;
+                    child: Stack(
+                      children: [
+                        InkWell(
+                          onTap: () {
+                            if (product.id.isNotEmpty) {
+                              context.go('/products/${product.id}');
+                            }
+                          },
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              // Tính toán chiều cao hình ảnh dựa trên tỉ lệ
+                              final imageHeight = constraints.maxHeight * 0.6;
+                              final contentHeight = constraints.maxHeight * 0.4;
 
-                          return Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Stack(
+                              return Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Container(
-                                    height: imageHeight,
-                                    width: double.infinity,
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[200],
-                                      borderRadius: const BorderRadius.vertical(
-                                        top: Radius.circular(12),
-                                      ),
-                                    ),
-                                    child: ClipRRect(
-                                      borderRadius: const BorderRadius.vertical(
-                                        top: Radius.circular(12),
-                                      ),
-                                      child: product.imageUrl != null
-                                          ? CachedNetworkImage(
-                                              imageUrl: product.imageUrl!,
-                                              fit: BoxFit.cover,
-                                              placeholder: (context, url) =>
-                                                  Center(
-                                                child: CircularProgressIndicator(
-                                                  strokeWidth: 2,
-                                                  valueColor:
-                                                      AlwaysStoppedAnimation<
-                                                          Color>(
-                                                    Theme.of(context)
-                                                        .colorScheme
-                                                        .primary,
-                                                  ),
-                                                ),
-                                              ),
-                                              errorWidget:
-                                                  (context, url, error) =>
-                                                      Icon(
-                                                Icons.image,
-                                                size: isMobile ? 48 : 64,
-                                                color: Colors.grey[400],
-                                              ),
-                                            )
-                                          : Icon(
-                                              Icons.image,
-                                              size: isMobile ? 48 : 64,
-                                              color: Colors.grey[400],
-                                            ),
-                                    ),
-                                  ),
-                                  // Badge giảm giá
-                                  if (discount > 0)
-                                    Positioned(
-                                      top: 8,
-                                      right: 8,
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 8, vertical: 4),
+                                  Stack(
+                                    children: [
+                                      Container(
+                                        height: imageHeight,
+                                        width: double.infinity,
                                         decoration: BoxDecoration(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .primary,
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                        child: Text(
-                                          '-$discount%',
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
+                                          color: Colors.grey[200],
+                                          borderRadius: const BorderRadius.vertical(
+                                            top: Radius.circular(12),
                                           ),
                                         ),
+                                        child: ClipRRect(
+                                          borderRadius: const BorderRadius.vertical(
+                                            top: Radius.circular(12),
+                                          ),
+                                          child: product.imageUrl != null
+                                              ? CachedNetworkImage(
+                                                  imageUrl: product.imageUrl!,
+                                                  fit: BoxFit.cover,
+                                                  color: isOutOfStock ? Colors.black.withOpacity(0.5) : null,
+                                                  colorBlendMode: isOutOfStock ? BlendMode.darken : null,
+                                                  placeholder: (context, url) =>
+                                                      Center(
+                                                    child: CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                      valueColor:
+                                                          AlwaysStoppedAnimation<
+                                                              Color>(
+                                                        Theme.of(context)
+                                                            .colorScheme
+                                                            .primary,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  errorWidget:
+                                                      (context, url, error) =>
+                                                          Icon(
+                                                    Icons.image,
+                                                    size: isMobile ? 48 : 64,
+                                                    color: Colors.grey[400],
+                                                  ),
+                                                )
+                                              : Icon(
+                                                  Icons.image,
+                                                  size: isMobile ? 48 : 64,
+                                                  color: Colors.grey[400],
+                                                ),
+                                        ),
                                       ),
-                                    ),
-                                ],
-                              ),
-                              Container(
-                                height: contentHeight,
-                                padding: EdgeInsets.all(isMobile ? 12 : 16),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
+                                      // Badge giảm giá
+                                      if (discount > 0)
+                                        Positioned(
+                                          top: 8,
+                                          right: 8,
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .primary,
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: Text(
+                                              '-$discount%',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      // Out of stock badge
+                                      if (isOutOfStock)
+                                        Positioned(
+                                          top: 8,
+                                          left: 8,
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: Colors.red[700],
+                                              borderRadius: BorderRadius.circular(4),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.red.withOpacity(0.3),
+                                                  blurRadius: 4,
+                                                  offset: const Offset(0, 2),
+                                                ),
+                                              ],
+                                            ),
+                                            child: const Text(
+                                              'Hết hàng',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                  Container(
+                                    height: contentHeight,
+                                    padding: EdgeInsets.all(isMobile ? 12 : 16),
+                                    child: Opacity(
+                                      opacity: isOutOfStock ? 0.6 : 1.0,
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
                                     Flexible(
                                       child: Text(
                                         product.name,
@@ -280,17 +316,29 @@ class DynamicSection extends StatelessWidget {
                                       ],
                                     ),
                                   ],
-                                ),
+                                ),),
                               ),
                             ],
                           );
                         },
                       ),
                     ),
-                  );
-                },
+                    // Out of stock overlay (không chặn tap events)
+                    if (isOutOfStock)
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               );
-            },
+            });},
           ),
         ],
       ),

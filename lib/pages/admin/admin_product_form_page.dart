@@ -67,6 +67,7 @@ class _AdminProductFormPageState extends State<AdminProductFormPage>
   final TextEditingController _optionOriginalPriceController = TextEditingController();
   final TextEditingController _optionDiscountController = TextEditingController();
   final TextEditingController _optionQuantityController = TextEditingController();
+  int? _editingOptionIndex; // null = đang thêm mới, not null = đang chỉnh sửa option tại index này
 
   @override
   void initState() {
@@ -299,17 +300,33 @@ class _AdminProductFormPageState extends State<AdminProductFormPage>
       return;
     }
     
-    // Check if option already exists
-    if (_options.any((opt) => 
-        opt['version'] == _selectedVersionForOption && 
-        opt['colorName'] == _selectedColorForOption)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Option này đã tồn tại'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
+    // Check if option already exists (skip check if editing the same option)
+    if (_editingOptionIndex == null) {
+      if (_options.any((opt) => 
+          opt['version'] == _selectedVersionForOption && 
+          opt['colorName'] == _selectedColorForOption)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Option này đã tồn tại'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+    } else {
+      // When editing, check if the new combination conflicts with other options (excluding current one)
+      if (_options.asMap().entries.any((entry) => 
+          entry.key != _editingOptionIndex &&
+          entry.value['version'] == _selectedVersionForOption && 
+          entry.value['colorName'] == _selectedColorForOption)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Option này đã tồn tại'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
     }
     
     final color = _colors.firstWhere((c) => c['name'] == _selectedColorForOption);
@@ -369,15 +386,47 @@ class _AdminProductFormPageState extends State<AdminProductFormPage>
     };
     
     setState(() {
-      _options.add(optionData);
+      if (_editingOptionIndex != null) {
+        // Update existing option
+        _options[_editingOptionIndex!] = optionData;
+        _editingOptionIndex = null;
+      } else {
+        // Add new option
+        _options.add(optionData);
+      }
       _selectedVersionForOption = null;
       _selectedColorForOption = null;
       _optionOriginalPriceController.clear();
       _optionDiscountController.clear();
       _optionQuantityController.clear();
     });
-    // Trigger validation after adding option
+    // Trigger validation after adding/updating option
     _validateQuantity();
+  }
+
+  void _editOption(int index) {
+    if (index < 0 || index >= _options.length) return;
+    
+    final option = _options[index];
+    setState(() {
+      _editingOptionIndex = index;
+      _selectedVersionForOption = option['version'] as String;
+      _selectedColorForOption = option['colorName'] as String;
+      _optionOriginalPriceController.text = (option['originalPrice'] as int).toString();
+      _optionDiscountController.text = (option['discount'] as int).toString();
+      _optionQuantityController.text = (option['quantity'] as int? ?? 0).toString();
+    });
+  }
+
+  void _cancelEditOption() {
+    setState(() {
+      _editingOptionIndex = null;
+      _selectedVersionForOption = null;
+      _selectedColorForOption = null;
+      _optionOriginalPriceController.clear();
+      _optionDiscountController.clear();
+      _optionQuantityController.clear();
+    });
   }
 
   void _removeOption(int index) {
@@ -428,6 +477,7 @@ class _AdminProductFormPageState extends State<AdminProductFormPage>
     }
 
     // Validate quantity vs total options quantity
+    // Nếu có options thì tổng số lượng options phải bằng số lượng thông tin
     final quantityText = _quantityController.text.trim();
     if (quantityText.isNotEmpty) {
       final quantity = int.tryParse(quantityText);
@@ -436,7 +486,7 @@ class _AdminProductFormPageState extends State<AdminProductFormPage>
           0,
           (sum, option) => sum + (option['quantity'] as int? ?? 0),
         );
-        if (totalOptionsQuantity > quantity) {
+        if (totalOptionsQuantity != quantity) {
           // Switch to tab 0 (Thông tin) to show the error
           _tabController.animateTo(0);
           // Wait a bit for tab animation, then trigger validation
@@ -449,7 +499,7 @@ class _AdminProductFormPageState extends State<AdminProductFormPage>
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                  'Tổng số lượng options ($totalOptionsQuantity) không được lớn hơn số lượng ($quantity). Vui lòng kiểm tra lại.',
+                  'Tổng số lượng options ($totalOptionsQuantity) phải bằng số lượng ($quantity). Vui lòng kiểm tra lại.',
                 ),
                 backgroundColor: Colors.red,
                 duration: const Duration(seconds: 4),
@@ -720,6 +770,7 @@ class _AdminProductFormPageState extends State<AdminProductFormPage>
                               optionDiscountController: _optionDiscountController,
                               optionQuantityController: _optionQuantityController,
                               basePrice: int.tryParse(_priceController.text.trim()) ?? 0,
+                              editingOptionIndex: _editingOptionIndex,
                               onVersionChanged: (value) {
                                 setState(() {
                                   _selectedVersionForOption = value;
@@ -735,6 +786,8 @@ class _AdminProductFormPageState extends State<AdminProductFormPage>
                               onAddColor: _addColor,
                               onRemoveColor: _removeColor,
                               onAddOption: _addOption,
+                              onEditOption: _editOption,
+                              onCancelEditOption: _cancelEditOption,
                               onRemoveOption: _removeOption,
                               isTablet: isTablet,
                               isMobile: isMobile,

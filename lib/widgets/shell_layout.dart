@@ -64,7 +64,7 @@ class _ShellLayoutState extends State<ShellLayout> {
           Expanded(
             child: Padding(
               padding: EdgeInsets.symmetric(
-                horizontal: isMobile ? 0 : (isTablet ? 0 : 250),
+                horizontal: isMobile ? 0 : (isTablet ? 0 : 50),
               ),
               child: widget.child,
             ),

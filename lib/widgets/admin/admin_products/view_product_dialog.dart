@@ -52,7 +52,8 @@ class ViewProductDialog extends StatelessWidget {
     final categoryName = _getCategoryName(product.categoryId);
     final childCategoryName = _getChildCategoryName(product.childCategoryId);
     final discount = product.discount;
-    final isInStock = product.status == 'Còn hàng';
+    final calculatedStatus = product.calculatedStatus;
+    final isInStock = calculatedStatus == 'Còn hàng';
     final mainImage = product.imageUrl;
     final subImages = product.imageUrls ?? [];
 
@@ -232,7 +233,7 @@ class ViewProductDialog extends StatelessWidget {
                     ),
                     _InfoRow(
                       label: 'Trạng thái',
-                      value: product.status,
+                      value: calculatedStatus,
                       isMobile: isMobile,
                       valueWidget: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -243,7 +244,7 @@ class ViewProductDialog extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          product.status,
+                          calculatedStatus,
                           style: TextStyle(
                             color: isInStock ? Colors.green[700] : Colors.red[700],
                             fontSize: 12,

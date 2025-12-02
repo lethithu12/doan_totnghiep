@@ -728,6 +728,7 @@ class _ProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isMobile = ResponsiveBreakpoints.of(context).isMobile;
     final discount = product.discount;
+    final isOutOfStock = product.calculatedStatus == 'Hết hàng';
     
     return Card(
       color: Colors.white,
@@ -736,18 +737,20 @@ class _ProductCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
       ),
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-            // Product image
-            Expanded(
-              flex: 6,
-              child: Stack(
-                                            children: [
+      child: Stack(
+        children: [
+          InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Product image
+                Expanded(
+                  flex: 6,
+                  child: Stack(
+                    children: [
                                               Container(
                                                 width: double.infinity,
                                                 decoration: BoxDecoration(
@@ -757,47 +760,49 @@ class _ProductCard extends StatelessWidget {
                                                   ),
                                                 ),
                                                 child: ClipRRect(
-                                                  borderRadius: const BorderRadius.vertical(
+                      borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(16),
-                                                  ),
-                                                  child: product.imageUrl != null
-                                                      ? CachedNetworkImage(
-                                                          imageUrl: product.imageUrl!,
-                                                          fit: BoxFit.cover,
+                      ),
+                      child: product.imageUrl != null
+                          ? CachedNetworkImage(
+                              imageUrl: product.imageUrl!,
+                              fit: BoxFit.cover,
                               width: double.infinity,
                               height: double.infinity,
+                              color: isOutOfStock ? Colors.black.withOpacity(0.5) : null,
+                              colorBlendMode: isOutOfStock ? BlendMode.darken : null,
                               placeholder: (context, url) => Container(
                                 color: Colors.grey[200],
                                 child: Center(
-                                                            child: CircularProgressIndicator(
-                                                              strokeWidth: 2,
-                                                              valueColor: AlwaysStoppedAnimation<Color>(
-                                                                Theme.of(context).colorScheme.primary,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Theme.of(context).colorScheme.primary,
                                     ),
-                                                              ),
-                                                            ),
-                                                          ),
-                                                          errorWidget: (context, url, error) => Icon(
-                                                            Icons.image,
-                                                            size: isMobile ? 48 : 64,
-                                                            color: Colors.grey[400],
-                                                          ),
-                                                        )
-                                                      : Icon(
-                                                          Icons.image,
-                                                          size: isMobile ? 48 : 64,
-                                                          color: Colors.grey[400],
-                                                        ),
-                                                ),
-                                              ),
+                                  ),
+                                ),
+                              ),
+                              errorWidget: (context, url, error) => Icon(
+                                Icons.image,
+                                size: isMobile ? 48 : 64,
+                                color: Colors.grey[400],
+                              ),
+                            )
+                          : Icon(
+                              Icons.image,
+                              size: isMobile ? 48 : 64,
+                              color: Colors.grey[400],
+                            ),
+                    ),
+                  ),
                   // Discount badge
-                                              if (discount > 0)
-                                                Positioned(
-                                                  top: 8,
-                                                  right: 8,
-                                                  child: Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                                    decoration: BoxDecoration(
+                  if (discount > 0)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
                               Colors.red[600]!,
@@ -812,123 +817,168 @@ class _ProductCard extends StatelessWidget {
                               offset: const Offset(0, 2),
                             ),
                           ],
-                                                    ),
-                                                    child: Text(
-                                                      '-$discount%',
-                                                      style: const TextStyle(
-                                                        color: Colors.white,
-                                                        fontSize: 12,
-                                                        fontWeight: FontWeight.bold,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                            ],
-                                          ),
+                        ),
+                        child: Text(
+                          '-$discount%',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  // Out of stock badge
+                  if (isOutOfStock)
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.red[700],
+                          borderRadius: BorderRadius.circular(6),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.red.withOpacity(0.3),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Text(
+                          'Hết hàng',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
             // Product info
             Expanded(
               flex: 4,
               child: Padding(
-                                            padding: EdgeInsets.all(isMobile ? 12 : 16),
-                                            child: Column(
-                                              mainAxisSize: MainAxisSize.min,
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              mainAxisAlignment: MainAxisAlignment.center,
-                                              children: [
-                                                if (!isMobile && categoryName != null) ...[
-                                                  Text(
-                        categoryName!,
-                                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                                          color: Theme.of(context).colorScheme.primary,
-                                                          fontWeight: FontWeight.w500,
-                              fontSize: 11,
-                                                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                                                  ),
-                                                  const SizedBox(height: 4),
-                                                ],
-                                                Flexible(
-                                                  child: Text(
-                                                    product.name,
-                                                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontSize: isMobile ? 14 : 15,
-                                                          fontWeight: FontWeight.w600,
-                                                        ),
-                                                    maxLines: 2,
-                                                    overflow: TextOverflow.ellipsis,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 6),
-                                                // Rating trung bình và số feedback
-                                                FutureBuilder<Map<String, dynamic>>(
-                                                  future: ReviewService().getReviewStats(product.id),
-                                                  builder: (context, reviewSnapshot) {
-                                                    final reviewCount = reviewSnapshot.data?['count'] as int? ?? 0;
-                                                    final averageRating = reviewSnapshot.data?['averageRating'] as double? ?? product.rating;
-                                                    return Row(
-                                                      children: [
-                                                        ...List.generate(5, (index) {
-                                                          return Icon(
-                                                            index < averageRating.floor()
-                                                                ? Icons.star
-                                                                : (index < averageRating ? Icons.star_half : Icons.star_border),
-                                                            size: isMobile ? 12 : 14,
-                                                            color: Colors.amber,
-                                                          );
-                                                        }),
-                                                        const SizedBox(width: 4),
-                                                        Flexible(
-                                                          child: Text(
-                                                            '($reviewCount)',
-                                                            style: TextStyle(
-                                                              fontSize: isMobile ? 11 : 12,
-                                                              color: Colors.grey[600],
-                                                            ),
-                                                            maxLines: 1,
-                                                            overflow: TextOverflow.ellipsis,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    );
-                                                  },
-                                                ),
-                    const SizedBox(height: 8),
-                                                // Giá
-                                                Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    Text(
-                                                      '${_formatPrice(product.price)} đ',
-                                                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                                            color: Theme.of(context).colorScheme.primary,
-                                                            fontWeight: FontWeight.bold,
-                                                            fontSize: isMobile ? 16 : 18,
-                                                          ),
-                                                    ),
-                                                    if (discount > 0) ...[
-                                                      const SizedBox(height: 4),
-                                                      Text(
-                                                        '${_formatPrice(product.originalPrice)} đ',
-                                                        style: TextStyle(
-                              fontSize: isMobile ? 11 : 12,
-                                                          color: Colors.grey[600],
-                                                          decoration: TextDecoration.lineThrough,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-              ),
-            ),
-                  ],
+                padding: EdgeInsets.all(isMobile ? 12 : 16),
+                child: Opacity(
+                  opacity: isOutOfStock ? 0.6 : 1.0,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (!isMobile && categoryName != null) ...[
+                        Text(
+                          categoryName!,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Theme.of(context).colorScheme.primary,
+                                fontWeight: FontWeight.w500,
+                                fontSize: 11,
+                              ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                      ],
+                      Flexible(
+                        child: Text(
+                          product.name,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontSize: isMobile ? 14 : 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      // Rating trung bình và số feedback
+                      FutureBuilder<Map<String, dynamic>>(
+                        future: ReviewService().getReviewStats(product.id),
+                        builder: (context, reviewSnapshot) {
+                          final reviewCount = reviewSnapshot.data?['count'] as int? ?? 0;
+                          final averageRating = reviewSnapshot.data?['averageRating'] as double? ?? product.rating;
+                          return Row(
+                            children: [
+                              ...List.generate(5, (index) {
+                                return Icon(
+                                  index < averageRating.floor()
+                                      ? Icons.star
+                                      : (index < averageRating ? Icons.star_half : Icons.star_border),
+                                  size: isMobile ? 12 : 14,
+                                  color: Colors.amber,
+                                );
+                              }),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  '($reviewCount)',
+                                  style: TextStyle(
+                                    fontSize: isMobile ? 11 : 12,
+                                    color: Colors.grey[600],
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      // Giá
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '${_formatPrice(product.price)} đ',
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: isMobile ? 16 : 18,
+                                ),
+                          ),
+                          if (discount > 0) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              '${_formatPrice(product.originalPrice)} đ',
+                              style: TextStyle(
+                                fontSize: isMobile ? 11 : 12,
+                                color: Colors.grey[600],
+                                decoration: TextDecoration.lineThrough,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            );
+            ),
+          ],
+        ),
+      ),
+      // Out of stock overlay (không chặn tap events)
+      if (isOutOfStock)
+        Positioned.fill(
+          child: IgnorePointer(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+          ),
+        ),
+    ],
+  ),
+);
   }
 }
 

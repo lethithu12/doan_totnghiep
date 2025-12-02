@@ -17,8 +17,8 @@ class ProductsStats extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final totalProducts = products.length;
-    final inStockProducts = products.where((p) => p.status == 'Còn hàng').length;
-    final outOfStockProducts = products.where((p) => p.status == 'Hết hàng').length;
+    final inStockProducts = products.where((p) => p.calculatedStatus == 'Còn hàng').length;
+    final outOfStockProducts = products.where((p) => p.calculatedStatus == 'Hết hàng').length;
     final totalValue = products.fold<int>(
       0,
       (sum, product) => sum + (product.price * product.quantity),

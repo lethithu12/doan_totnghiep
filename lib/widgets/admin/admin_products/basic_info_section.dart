@@ -268,14 +268,14 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
                         return 'Số lượng phải >= 0';
                       }
                       
-                      // Validate: tổng số lượng options không được lớn hơn số lượng thông tin
+                      // Validate: nếu có options thì tổng số lượng options phải bằng số lượng thông tin
                       if (widget.options.isNotEmpty) {
                         final totalOptionsQuantity = widget.options.fold<int>(
                           0,
                           (sum, option) => sum + (option['quantity'] as int? ?? 0),
                         );
-                        if (totalOptionsQuantity > quantity) {
-                          return 'Tổng số lượng options ($totalOptionsQuantity) không được lớn hơn số lượng ($quantity)';
+                        if (totalOptionsQuantity != quantity) {
+                          return 'Tổng số lượng options ($totalOptionsQuantity) phải bằng số lượng ($quantity)';
                         }
                       }
                       

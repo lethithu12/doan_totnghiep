@@ -147,16 +147,16 @@ class ProductInfoSection extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: product.status == 'Còn hàng'
+                            color: product.calculatedStatus == 'Còn hàng'
                                 ? Colors.green[100]
                                 : Colors.red[100],
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
-                            product.status,
+                            product.calculatedStatus,
                             style: TextStyle(
                               fontSize: 10,
-                              color: product.status == 'Còn hàng'
+                              color: product.calculatedStatus == 'Còn hàng'
                                   ? Colors.green[700]
                                   : Colors.red[700],
                               fontWeight: FontWeight.w600,

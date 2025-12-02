@@ -67,7 +67,7 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
       final matchesCategory = _selectedCategoryId == null || product.categoryId == _selectedCategoryId;
 
       // Status filter
-      final matchesStatus = _selectedStatus == null || product.status == _selectedStatus;
+      final matchesStatus = _selectedStatus == null || product.calculatedStatus == _selectedStatus;
 
       return matchesSearch && matchesCategory && matchesStatus;
     }).toList();
@@ -123,7 +123,9 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
         case 4: // Quantity
           return ascending ? a.quantity.compareTo(b.quantity) : b.quantity.compareTo(a.quantity);
         case 5: // Status
-          return ascending ? a.status.compareTo(b.status) : b.status.compareTo(a.status);
+          return ascending
+              ? a.calculatedStatus.compareTo(b.calculatedStatus)
+              : b.calculatedStatus.compareTo(a.calculatedStatus);
         default:
           return 0;
       }

@@ -825,109 +825,147 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                               const SizedBox(height: 24),
                             ],
                             const SizedBox(height: 24),
-                            // Nút Mua ngay
-                            Container(
-                              width: double.infinity,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    AppColors.headerBackground,
-                                    AppColors.primaryLight,
+                            // Kiểm tra hết hàng
+                            if (_product?.calculatedStatus == 'Hết hàng')
+                              // Nút HẾT HÀNG
+                              Container(
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: ElevatedButton(
+                                  onPressed: null, // Disabled
+                                  style: ElevatedButton.styleFrom(
+                                    padding: const EdgeInsets.all(16),
+                                    backgroundColor: Colors.red,
+                                    shadowColor: Colors.transparent,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  child: const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.block, color: Colors.white, size: 20),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'HẾT HÀNG',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              )
+                            else ...[
+                              // Nút Mua ngay
+                              Container(
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      AppColors.headerBackground,
+                                      AppColors.primaryLight,
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.headerBackground.withOpacity(0.3),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 4),
+                                    ),
                                   ],
                                 ),
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.headerBackground.withOpacity(0.3),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 4),
+                                child: ElevatedButton(
+                                  onPressed: _isAddingToCart ? null : _handleBuyNow,
+                                  style: ElevatedButton.styleFrom(
+                                    padding: const EdgeInsets.all(16),
+                                    backgroundColor: Colors.transparent,
+                                    shadowColor: Colors.transparent,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
                                   ),
-                                ],
-                              ),
-                              child: ElevatedButton(
-                                onPressed: _isAddingToCart ? null : _handleBuyNow,
-                                style: ElevatedButton.styleFrom(
-                                  padding: const EdgeInsets.all(16),
-                                  backgroundColor: Colors.transparent,
-                                  shadowColor: Colors.transparent,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                child: _isAddingToCart
-                                    ? const SizedBox(
-                                        height: 20,
-                                        width: 20,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  child: _isAddingToCart
+                                      ? const SizedBox(
+                                          height: 20,
+                                          width: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                          ),
+                                        )
+                                      : const Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.shopping_cart, color: Colors.white, size: 20),
+                                            SizedBox(width: 8),
+                                            Text(
+                                              'Mua ngay',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                      )
-                                    : const Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Icon(Icons.shopping_cart, color: Colors.white, size: 20),
-                                          SizedBox(width: 8),
-                                          Text(
-                                            'Mua ngay',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              // Nút Thêm vào giỏ hàng
+                              SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton(
+                                  onPressed: _isAddingToCart ? null : _handleAddToCart,
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.all(16),
+                                    side: BorderSide(
+                                      color: Theme.of(context).colorScheme.primary,
+                                      width: 2,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  child: _isAddingToCart
+                                      ? SizedBox(
+                                          height: 20,
+                                          width: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor: AlwaysStoppedAnimation<Color>(
+                                              Theme.of(context).colorScheme.primary,
                                             ),
                                           ),
-                                        ],
-                                      ),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            // Nút Thêm vào giỏ hàng
-                            SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton(
-                                onPressed: _isAddingToCart ? null : _handleAddToCart,
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.all(16),
-                                  side: BorderSide(
-                                    color: Theme.of(context).colorScheme.primary,
-                                    width: 2,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                child: _isAddingToCart
-                                    ? SizedBox(
-                                        height: 20,
-                                        width: 20,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          valueColor: AlwaysStoppedAnimation<Color>(
-                                            Theme.of(context).colorScheme.primary,
-                                          ),
-                                        ),
-                                      )
-                                    : Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.add_shopping_cart,
-                                            color: Theme.of(context).colorScheme.primary,
-                                            size: 20,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            'Thêm vào giỏ hàng',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
+                                        )
+                                      : Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.add_shopping_cart,
                                               color: Theme.of(context).colorScheme.primary,
+                                              size: 20,
                                             ),
-                                          ),
-                                        ],
-                                      ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              'Thêm vào giỏ hàng',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                                color: Theme.of(context).colorScheme.primary,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                ),
                               ),
-                            ),
+                            ],
                           ],
                         ),
                       ],
@@ -1327,109 +1365,147 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                   const SizedBox(height: 32),
                                 ],
                                 const SizedBox(height: 32),
-                                // Nút Mua ngay
-                                Container(
-                                  width: double.infinity,
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        AppColors.headerBackground,
-                                        AppColors.primaryLight,
+                                // Kiểm tra hết hàng
+                                if (_product?.calculatedStatus == 'Hết hàng')
+                                  // Nút HẾT HÀNG
+                                  Container(
+                                    width: double.infinity,
+                                    decoration: BoxDecoration(
+                                      color: Colors.red,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: ElevatedButton(
+                                      onPressed: null, // Disabled
+                                      style: ElevatedButton.styleFrom(
+                                        padding: const EdgeInsets.all(16),
+                                        backgroundColor: Colors.red,
+                                        shadowColor: Colors.transparent,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                      ),
+                                      child: const Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.block, color: Colors.white, size: 20),
+                                          SizedBox(width: 8),
+                                          Text(
+                                            'HẾT HÀNG',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  )
+                                else ...[
+                                  // Nút Mua ngay
+                                  Container(
+                                    width: double.infinity,
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          AppColors.headerBackground,
+                                          AppColors.primaryLight,
+                                        ],
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: AppColors.headerBackground.withOpacity(0.3),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 4),
+                                        ),
                                       ],
                                     ),
-                                    borderRadius: BorderRadius.circular(12),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: AppColors.headerBackground.withOpacity(0.3),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 4),
+                                    child: ElevatedButton(
+                                      onPressed: _isAddingToCart ? null : _handleBuyNow,
+                                      style: ElevatedButton.styleFrom(
+                                        padding: const EdgeInsets.all(16),
+                                        backgroundColor: Colors.transparent,
+                                        shadowColor: Colors.transparent,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
                                       ),
-                                    ],
-                                  ),
-                                  child: ElevatedButton(
-                                    onPressed: _isAddingToCart ? null : _handleBuyNow,
-                                    style: ElevatedButton.styleFrom(
-                                      padding: const EdgeInsets.all(16),
-                                      backgroundColor: Colors.transparent,
-                                      shadowColor: Colors.transparent,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                    child: _isAddingToCart
-                                        ? const SizedBox(
-                                            height: 20,
-                                            width: 20,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                      child: _isAddingToCart
+                                          ? const SizedBox(
+                                              height: 20,
+                                              width: 20,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                              ),
+                                            )
+                                          : const Row(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                Icon(Icons.shopping_cart, color: Colors.white, size: 20),
+                                                SizedBox(width: 8),
+                                                Text(
+                                                  'Mua ngay',
+                                                  style: TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
-                                          )
-                                        : const Row(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              Icon(Icons.shopping_cart, color: Colors.white, size: 20),
-                                              SizedBox(width: 8),
-                                              Text(
-                                                'Mua ngay',
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Colors.white,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  // Nút Thêm vào giỏ hàng
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: OutlinedButton(
+                                      onPressed: _isAddingToCart ? null : _handleAddToCart,
+                                      style: OutlinedButton.styleFrom(
+                                        padding: const EdgeInsets.all(16),
+                                        side: BorderSide(
+                                          color: Theme.of(context).colorScheme.primary,
+                                          width: 2,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                      ),
+                                      child: _isAddingToCart
+                                          ? SizedBox(
+                                              height: 20,
+                                              width: 20,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                valueColor: AlwaysStoppedAnimation<Color>(
+                                                  Theme.of(context).colorScheme.primary,
                                                 ),
                                               ),
-                                            ],
-                                          ),
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                // Nút Thêm vào giỏ hàng
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: OutlinedButton(
-                                    onPressed: _isAddingToCart ? null : _handleAddToCart,
-                                    style: OutlinedButton.styleFrom(
-                                      padding: const EdgeInsets.all(16),
-                                      side: BorderSide(
-                                        color: Theme.of(context).colorScheme.primary,
-                                        width: 2,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                    child: _isAddingToCart
-                                        ? SizedBox(
-                                            height: 20,
-                                            width: 20,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              valueColor: AlwaysStoppedAnimation<Color>(
-                                                Theme.of(context).colorScheme.primary,
-                                              ),
-                                            ),
-                                          )
-                                        : Row(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              Icon(
-                                                Icons.add_shopping_cart,
-                                                color: Theme.of(context).colorScheme.primary,
-                                                size: 20,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                'Thêm vào giỏ hàng',
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold,
+                                            )
+                                          : Row(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                Icon(
+                                                  Icons.add_shopping_cart,
                                                   color: Theme.of(context).colorScheme.primary,
+                                                  size: 20,
                                                 ),
-                                              ),
-                                            ],
-                                          ),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  'Thêm vào giỏ hàng',
+                                                  style: TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Theme.of(context).colorScheme.primary,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                    ),
                                   ),
-                                ),
+                                ],
                               ],
                             ),
                           ),

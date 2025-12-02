@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../models/home_section_model.dart';
 import '../../../models/product_model.dart';
 import '../../../services/product_service.dart';
+import '../../../services/review_service.dart';
 
 class DynamicSection extends StatelessWidget {
   final HomeSectionModel section;
@@ -213,29 +214,36 @@ class DynamicSection extends StatelessWidget {
                                       ),
                                     ),
                                     const SizedBox(height: 6),
-                                    // Rating và số lượng đã bán
-                                    Row(
-                                      children: [
-                                        ...List.generate(5, (index) {
-                                          return Icon(
-                                            index < product.rating.floor()
-                                                ? Icons.star
-                                                : (index < product.rating
-                                                    ? Icons.star_half
-                                                    : Icons.star_border),
-                                            size: isMobile ? 12 : 14,
-                                            color: Colors.amber,
-                                          );
-                                        }),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          '(${product.sold})',
-                                          style: TextStyle(
-                                            fontSize: isMobile ? 11 : 12,
-                                            color: Colors.grey[600],
-                                          ),
-                                        ),
-                                      ],
+                                    // Rating trung bình và số feedback
+                                    FutureBuilder<Map<String, dynamic>>(
+                                      future: ReviewService().getReviewStats(product.id),
+                                      builder: (context, reviewSnapshot) {
+                                        final reviewCount = reviewSnapshot.data?['count'] as int? ?? 0;
+                                        final averageRating = reviewSnapshot.data?['averageRating'] as double? ?? product.rating;
+                                        return Row(
+                                          children: [
+                                            ...List.generate(5, (index) {
+                                              return Icon(
+                                                index < averageRating.floor()
+                                                    ? Icons.star
+                                                    : (index < averageRating
+                                                        ? Icons.star_half
+                                                        : Icons.star_border),
+                                                size: isMobile ? 12 : 14,
+                                                color: Colors.amber,
+                                              );
+                                            }),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              '($reviewCount)',
+                                              style: TextStyle(
+                                                fontSize: isMobile ? 11 : 12,
+                                                color: Colors.grey[600],
+                                              ),
+                                            ),
+                                          ],
+                                        );
+                                      },
                                     ),
                                     const SizedBox(height: 6),
                                     // Giá

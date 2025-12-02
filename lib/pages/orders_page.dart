@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/order_status.dart';
 import '../widgets/pages/orders/orders_tab.dart';
+import '../widgets/pages/orders/my_reviews_tab.dart';
 import '../config/colors.dart';
 
 class OrdersPage extends StatefulWidget {
@@ -16,7 +17,7 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -79,6 +80,7 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
                 Tab(text: 'Đang giao'),
                 Tab(text: 'Hoàn thành'),
                 Tab(text: 'Hủy bỏ'),
+                Tab(text: 'Đánh giá của tôi'),
               ],
             ),
           ),
@@ -91,6 +93,7 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
                 OrdersTab(status: OrderStatus.delivering),
                 OrdersTab(status: OrderStatus.completed),
                 OrdersTab(status: OrderStatus.cancelled),
+                const MyReviewsTab(),
               ],
             ),
           ),

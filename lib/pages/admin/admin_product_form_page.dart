@@ -72,8 +72,18 @@ class _AdminProductFormPageState extends State<AdminProductFormPage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    // Add listener to quantity controller to trigger validation when quantity changes
+    _quantityController.addListener(_validateQuantity);
     if (widget.productId != null) {
       _loadProductData();
+    }
+  }
+
+  void _validateQuantity() {
+    // Trigger validation for quantity field when it changes
+    // This ensures validation runs when quantity or options change
+    if (_formKey.currentState != null) {
+      _formKey.currentState!.validate();
     }
   }
 
@@ -366,12 +376,16 @@ class _AdminProductFormPageState extends State<AdminProductFormPage>
       _optionDiscountController.clear();
       _optionQuantityController.clear();
     });
+    // Trigger validation after adding option
+    _validateQuantity();
   }
 
   void _removeOption(int index) {
     setState(() {
       _options.removeAt(index);
     });
+    // Trigger validation after removing option
+    _validateQuantity();
   }
 
   void _addSpecification() {
@@ -411,6 +425,40 @@ class _AdminProductFormPageState extends State<AdminProductFormPage>
         ),
       );
       return;
+    }
+
+    // Validate quantity vs total options quantity
+    final quantityText = _quantityController.text.trim();
+    if (quantityText.isNotEmpty) {
+      final quantity = int.tryParse(quantityText);
+      if (quantity != null && _options.isNotEmpty) {
+        final totalOptionsQuantity = _options.fold<int>(
+          0,
+          (sum, option) => sum + (option['quantity'] as int? ?? 0),
+        );
+        if (totalOptionsQuantity > quantity) {
+          // Switch to tab 0 (Thông tin) to show the error
+          _tabController.animateTo(0);
+          // Wait a bit for tab animation, then trigger validation
+          await Future.delayed(const Duration(milliseconds: 300));
+          // Trigger validation again to show the error
+          if (mounted && _formKey.currentState != null) {
+            _formKey.currentState!.validate();
+          }
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Tổng số lượng options ($totalOptionsQuantity) không được lớn hơn số lượng ($quantity). Vui lòng kiểm tra lại.',
+                ),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
+          return;
+        }
+      }
     }
 
     setState(() {
@@ -637,6 +685,7 @@ class _AdminProductFormPageState extends State<AdminProductFormPage>
                               imageUrls: _imageUrls,
                               onPickImages: _pickImages,
                               onRemoveImage: _removeImage,
+                              options: _options,
                               isUploading: _isUploading,
                               isTablet: isTablet,
                               isMobile: isMobile,

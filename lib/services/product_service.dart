@@ -122,5 +122,147 @@ class ProductService {
       throw 'Lỗi khi cập nhật trạng thái: ${e.toString()}';
     }
   }
+
+  // Decrease product quantity (for order completion)
+  Future<void> decreaseQuantity(String id, int quantity) async {
+    try {
+      final product = await getProductById(id);
+      if (product == null) {
+        throw 'Không tìm thấy sản phẩm';
+      }
+      
+      final newQuantity = (product.quantity - quantity).clamp(0, double.infinity).toInt();
+      await updateQuantity(id, newQuantity);
+    } catch (e) {
+      throw 'Lỗi khi giảm số lượng sản phẩm: ${e.toString()}';
+    }
+  }
+
+  // Increase product quantity (for order cancellation/restore)
+  Future<void> increaseQuantity(String id, int quantity) async {
+    try {
+      final product = await getProductById(id);
+      if (product == null) {
+        throw 'Không tìm thấy sản phẩm';
+      }
+      
+      final newQuantity = product.quantity + quantity;
+      await updateQuantity(id, newQuantity);
+    } catch (e) {
+      throw 'Lỗi khi tăng số lượng sản phẩm: ${e.toString()}';
+    }
+  }
+
+  // Decrease option quantity (for order completion)
+  Future<void> decreaseOptionQuantity(
+    String productId,
+    String? version,
+    String? colorName,
+    int quantity,
+  ) async {
+    try {
+      final product = await getProductById(productId);
+      if (product == null) {
+        throw 'Không tìm thấy sản phẩm';
+      }
+
+      if (product.options == null || product.options!.isEmpty) {
+        // No options, decrease main quantity
+        await decreaseQuantity(productId, quantity);
+        return;
+      }
+
+      // Find matching option
+      final optionIndex = product.options!.indexWhere((opt) {
+        final optVersion = opt['version'] as String?;
+        final optColorName = opt['colorName'] as String?;
+        return optVersion == version && optColorName == colorName;
+      });
+
+      if (optionIndex == -1) {
+        // Option not found, decrease main quantity
+        await decreaseQuantity(productId, quantity);
+        return;
+      }
+
+      // Update option quantity
+      final option = product.options![optionIndex];
+      final currentOptionQuantity = option['quantity'] as int? ?? 0;
+      final newOptionQuantity = (currentOptionQuantity - quantity).clamp(0, double.infinity).toInt();
+      
+      final updatedOptions = List<Map<String, dynamic>>.from(product.options!);
+      updatedOptions[optionIndex] = {
+        ...option,
+        'quantity': newOptionQuantity,
+      };
+
+      // Also decrease main quantity
+      final newMainQuantity = (product.quantity - quantity).clamp(0, double.infinity).toInt();
+
+      await _firestore.collection(_collection).doc(productId).update({
+        'quantity': newMainQuantity,
+        'options': updatedOptions,
+        'updatedAt': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      throw 'Lỗi khi giảm số lượng option: ${e.toString()}';
+    }
+  }
+
+  // Increase option quantity (for order cancellation/restore)
+  Future<void> increaseOptionQuantity(
+    String productId,
+    String? version,
+    String? colorName,
+    int quantity,
+  ) async {
+    try {
+      final product = await getProductById(productId);
+      if (product == null) {
+        throw 'Không tìm thấy sản phẩm';
+      }
+
+      if (product.options == null || product.options!.isEmpty) {
+        // No options, increase main quantity
+        await increaseQuantity(productId, quantity);
+        return;
+      }
+
+      // Find matching option
+      final optionIndex = product.options!.indexWhere((opt) {
+        final optVersion = opt['version'] as String?;
+        final optColorName = opt['colorName'] as String?;
+        return optVersion == version && optColorName == colorName;
+      });
+
+      if (optionIndex == -1) {
+        // Option not found, increase main quantity
+        await increaseQuantity(productId, quantity);
+        return;
+      }
+
+      // Update option quantity
+      final option = product.options![optionIndex];
+      final currentOptionQuantity = option['quantity'] as int? ?? 0;
+      final newOptionQuantity = currentOptionQuantity + quantity;
+      
+      final updatedOptions = List<Map<String, dynamic>>.from(product.options!);
+      updatedOptions[optionIndex] = {
+        ...option,
+        'quantity': newOptionQuantity,
+      };
+
+      // Also increase main quantity
+      final newMainQuantity = product.quantity + quantity;
+
+      await _firestore.collection(_collection).doc(productId).update({
+        'quantity': newMainQuantity,
+        'options': updatedOptions,
+        'updatedAt': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      throw 'Lỗi khi tăng số lượng option: ${e.toString()}';
+    }
+  }
 }
 

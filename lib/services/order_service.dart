@@ -5,10 +5,12 @@ import '../models/order_model.dart';
 import '../models/order_status.dart';
 import '../models/cart_model.dart';
 import '../models/payment_method.dart';
+import 'product_service.dart';
 
 class OrderService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final ProductService _productService = ProductService();
   final String _collection = 'orders';
 
   String? get _currentUserId => _auth.currentUser?.uid;
@@ -141,12 +143,74 @@ class OrderService {
   /// Cập nhật trạng thái đơn hàng
   Future<void> updateOrderStatus(String orderId, OrderStatus newStatus) async {
     try {
+      // Get current order to check previous status
+      final order = await getOrderById(orderId);
+      if (order == null) {
+        throw 'Không tìm thấy đơn hàng';
+      }
+
+      final previousStatus = order.status;
+
+      // Update order status
       await _firestore.collection(_collection).doc(orderId).update({
         'status': newStatus.value,
         'updatedAt': DateTime.now().toIso8601String(),
       });
+
+      // If status changed to completed, decrease product quantities
+      if (previousStatus != OrderStatus.completed && newStatus == OrderStatus.completed) {
+        await _decreaseProductQuantities(order);
+      }
+      // If status changed from completed to another status, restore product quantities
+      else if (previousStatus == OrderStatus.completed && newStatus != OrderStatus.completed) {
+        await _restoreProductQuantities(order);
+      }
     } catch (e) {
       throw 'Lỗi khi cập nhật trạng thái đơn hàng: ${e.toString()}';
+    }
+  }
+
+  /// Giảm số lượng sản phẩm khi đơn hàng hoàn thành
+  Future<void> _decreaseProductQuantities(OrderModel order) async {
+    try {
+      for (final item in order.items) {
+        // Decrease option quantity if version/color is selected
+        if (item.selectedVersion != null || item.selectedColor != null) {
+          await _productService.decreaseOptionQuantity(
+            item.productId,
+            item.selectedVersion,
+            item.selectedColor,
+            item.quantity,
+          );
+        } else {
+          // Decrease main quantity
+          await _productService.decreaseQuantity(item.productId, item.quantity);
+        }
+      }
+    } catch (e) {
+      throw 'Lỗi khi giảm số lượng sản phẩm: ${e.toString()}';
+    }
+  }
+
+  /// Khôi phục số lượng sản phẩm khi đơn hàng không còn completed
+  Future<void> _restoreProductQuantities(OrderModel order) async {
+    try {
+      for (final item in order.items) {
+        // Increase option quantity if version/color is selected
+        if (item.selectedVersion != null || item.selectedColor != null) {
+          await _productService.increaseOptionQuantity(
+            item.productId,
+            item.selectedVersion,
+            item.selectedColor,
+            item.quantity,
+          );
+        } else {
+          // Increase main quantity
+          await _productService.increaseQuantity(item.productId, item.quantity);
+        }
+      }
+    } catch (e) {
+      throw 'Lỗi khi khôi phục số lượng sản phẩm: ${e.toString()}';
     }
   }
 

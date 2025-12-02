@@ -256,6 +256,14 @@ class _AdminSidebar extends StatelessWidget {
                   isTablet: isTablet,
                   isCollapsed: isCollapsed,
                 ),
+                _AdminSidebarItem(
+                  icon: Icons.newspaper,
+                  label: 'Tin tức',
+                  route: '/admin/news',
+                  isActive: currentPath.startsWith('/admin/news'),
+                  isTablet: isTablet,
+                  isCollapsed: isCollapsed,
+                ),
                 // _AdminSidebarItem(
                 //   icon: Icons.analytics,
                 //   label: 'Thống kê',
@@ -429,6 +437,16 @@ class _AdminDrawer extends StatelessWidget {
                   isActive: currentPath == '/admin/home-sections',
                   onTap: () {
                     context.go('/admin/home-sections');
+                    onItemSelected();
+                  },
+                ),
+                _AdminDrawerItem(
+                  icon: Icons.newspaper,
+                  label: 'Tin tức',
+                  route: '/admin/news',
+                  isActive: currentPath.startsWith('/admin/news'),
+                  onTap: () {
+                    context.go('/admin/news');
                     onItemSelected();
                   },
                 ),

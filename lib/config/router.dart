@@ -8,6 +8,8 @@ import '../../pages/orders_page.dart';
 import '../../pages/product_detail_page.dart';
 import '../../pages/login_page.dart';
 import '../../pages/checkout_page.dart';
+import '../../pages/news_page.dart';
+import '../../pages/news_detail_page.dart';
 import '../../models/cart_model.dart';
 import '../../pages/admin/admin_dashboard_page.dart';
 import '../../pages/admin/admin_products_page.dart';
@@ -19,6 +21,8 @@ import '../../pages/admin/admin_users_page.dart';
 import '../../pages/admin/admin_home_sections_page.dart';
 import '../../pages/admin/admin_analytics_page.dart';
 import '../../pages/admin/admin_settings_page.dart';
+import '../../pages/admin/admin_news_page.dart';
+import '../../pages/admin/admin_news_form_page.dart';
 import '../../widgets/shell_layout.dart';
 import '../../widgets/admin/admin_shell_layout.dart';
 
@@ -52,6 +56,19 @@ final GoRouter appRouter = GoRouter(
           path: '/categories',
           name: 'categories',
           builder: (context, state) => const CategoriesPage(),
+        ),
+        GoRoute(
+          path: '/news',
+          name: 'news',
+          builder: (context, state) => const NewsPage(),
+        ),
+        GoRoute(
+          path: '/news/:id',
+          name: 'news-detail',
+          builder: (context, state) {
+            final id = state.pathParameters['id'] ?? '';
+            return NewsDetailPage(newsId: id);
+          },
         ),
         GoRoute(
           path: '/cart',
@@ -139,6 +156,24 @@ final GoRouter appRouter = GoRouter(
           path: '/admin/home-sections',
           name: 'admin-home-sections',
           builder: (context, state) => const AdminHomeSectionsPage(),
+        ),
+        GoRoute(
+          path: '/admin/news',
+          name: 'admin-news',
+          builder: (context, state) => const AdminNewsPage(),
+        ),
+        GoRoute(
+          path: '/admin/news/new',
+          name: 'admin-news-create',
+          builder: (context, state) => const AdminNewsFormPage(),
+        ),
+        GoRoute(
+          path: '/admin/news/:id/edit',
+          name: 'admin-news-edit',
+          builder: (context, state) {
+            final id = state.pathParameters['id'] ?? '';
+            return AdminNewsFormPage(newsId: id);
+          },
         ),
         GoRoute(
           path: '/admin/analytics',

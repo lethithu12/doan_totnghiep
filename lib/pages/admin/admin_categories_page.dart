@@ -49,15 +49,11 @@ class _AdminCategoriesPageState extends State<AdminCategoriesPage> {
           return _sortAscending
               ? a.name.compareTo(b.name)
               : b.name.compareTo(a.name);
-        case 1: // Product Count
-          return _sortAscending
-              ? a.productCount.compareTo(b.productCount)
-              : b.productCount.compareTo(a.productCount);
-        case 2: // Status
+        case 1: // Status
           return _sortAscending
               ? a.status.compareTo(b.status)
               : b.status.compareTo(a.status);
-        case 3: // Created At
+        case 2: // Created At
           return _sortAscending
               ? a.createdAt.compareTo(b.createdAt)
               : b.createdAt.compareTo(a.createdAt);

@@ -80,19 +80,6 @@ class CategoriesDataTable extends StatelessWidget {
         ),
         DataColumn2(
           label: Text(
-            'Số sản phẩm',
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-            ),
-          ),
-          size: ColumnSize.M,
-          numeric: true,
-          onSort: (columnIndex, ascending) => onSort(1, ascending),
-        ),
-        DataColumn2(
-          label: Text(
             'Trạng thái',
             style: const TextStyle(
               color: Colors.white,
@@ -101,7 +88,7 @@ class CategoriesDataTable extends StatelessWidget {
             ),
           ),
           size: ColumnSize.M,
-          onSort: (columnIndex, ascending) => onSort(2, ascending),
+          onSort: (columnIndex, ascending) => onSort(1, ascending),
         ),
         DataColumn2(
           label: Text(
@@ -113,7 +100,7 @@ class CategoriesDataTable extends StatelessWidget {
             ),
           ),
           size: ColumnSize.M,
-          onSort: (columnIndex, ascending) => onSort(3, ascending),
+          onSort: (columnIndex, ascending) => onSort(2, ascending),
         ),
         DataColumn2(
           label: Text(

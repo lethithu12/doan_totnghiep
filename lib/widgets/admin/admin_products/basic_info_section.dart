@@ -16,6 +16,7 @@ class BasicInfoSection extends StatefulWidget {
   final ValueChanged<String?> onParentCategoryChanged;
   final ValueChanged<String?> onChildCategoryChanged;
   final ValueChanged<String?> onStatusChanged;
+  final List<Map<String, dynamic>> options;
   final bool isTablet;
   final bool isMobile;
 
@@ -33,6 +34,7 @@ class BasicInfoSection extends StatefulWidget {
     required this.onParentCategoryChanged,
     required this.onChildCategoryChanged,
     required this.onStatusChanged,
+    this.options = const [],
     required this.isTablet,
     this.isMobile = false,
   });
@@ -258,9 +260,25 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
                       if (value == null || value.isEmpty) {
                         return 'Vui lòng nhập số lượng';
                       }
-                      if (int.tryParse(value) == null) {
+                      final quantity = int.tryParse(value);
+                      if (quantity == null) {
                         return 'Số lượng phải là số';
                       }
+                      if (quantity < 0) {
+                        return 'Số lượng phải >= 0';
+                      }
+                      
+                      // Validate: tổng số lượng options không được lớn hơn số lượng thông tin
+                      if (widget.options.isNotEmpty) {
+                        final totalOptionsQuantity = widget.options.fold<int>(
+                          0,
+                          (sum, option) => sum + (option['quantity'] as int? ?? 0),
+                        );
+                        if (totalOptionsQuantity > quantity) {
+                          return 'Tổng số lượng options ($totalOptionsQuantity) không được lớn hơn số lượng ($quantity)';
+                        }
+                      }
+                      
                       return null;
                     },
                     isTablet: widget.isTablet,

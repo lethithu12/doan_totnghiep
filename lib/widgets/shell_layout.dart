@@ -23,8 +23,10 @@ class _ShellLayoutState extends State<ShellLayout> {
         return 0;
       case '/products':
         return 1;
-      case '/orders':
+      case '/news':
         return 2;
+      case '/orders':
+        return 3;
       default:
         return 0;
     }
@@ -39,6 +41,9 @@ class _ShellLayoutState extends State<ShellLayout> {
         context.go('/products');
         break;
       case 2:
+        context.go('/news');
+        break;
+      case 3:
         context.go('/orders');
         break;
     }
@@ -105,11 +110,18 @@ class _ShellLayoutState extends State<ShellLayout> {
                         onTap: () => _onItemTapped(1, context),
                       ),
                       _BottomNavItem(
+                        icon: Icons.newspaper_outlined,
+                        activeIcon: Icons.newspaper,
+                        label: 'Tin tức',
+                        isActive: currentIndex == 2,
+                        onTap: () => _onItemTapped(2, context),
+                      ),
+                      _BottomNavItem(
                         icon: Icons.receipt_long_outlined,
                         activeIcon: Icons.receipt_long,
                         label: 'Đơn hàng',
-                        isActive: currentIndex == 2,
-                        onTap: () => _onItemTapped(2, context),
+                        isActive: currentIndex == 3,
+                        onTap: () => _onItemTapped(3, context),
                       ),
                     ],
                   ),

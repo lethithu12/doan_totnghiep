@@ -23,6 +23,7 @@ class ProductInfoTab extends StatelessWidget {
   final List<String> imageUrls;
   final VoidCallback onPickImages;
   final Function(int) onRemoveImage;
+  final List<Map<String, dynamic>> options;
   final bool isUploading;
   final bool isTablet;
   final bool isMobile;
@@ -46,6 +47,7 @@ class ProductInfoTab extends StatelessWidget {
     required this.imageUrls,
     required this.onPickImages,
     required this.onRemoveImage,
+    this.options = const [],
     required this.isUploading,
     required this.isTablet,
     required this.isMobile,
@@ -70,6 +72,7 @@ class ProductInfoTab extends StatelessWidget {
               onParentCategoryChanged: onParentCategoryChanged,
               onChildCategoryChanged: onChildCategoryChanged,
               onStatusChanged: onStatusChanged,
+              options: options,
               isTablet: isTablet,
               isMobile: isMobile,
             )
@@ -92,6 +95,7 @@ class ProductInfoTab extends StatelessWidget {
                     onParentCategoryChanged: onParentCategoryChanged,
                     onChildCategoryChanged: onChildCategoryChanged,
                     onStatusChanged: onStatusChanged,
+                    options: options,
                     isTablet: isTablet,
                     isMobile: isMobile,
                   ),

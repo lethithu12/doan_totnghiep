@@ -46,6 +46,109 @@ class ReviewService {
     }
   }
 
+  /// Lấy số lượng đánh giá của một sản phẩm (chỉ count, không lấy dữ liệu)
+  Future<int> getReviewCount(String productId) async {
+    try {
+      final snapshot = await _firestore
+          .collection(_collection)
+          .where('productId', isEqualTo: productId)
+          .count()
+          .get();
+
+      return snapshot.count ?? 0;
+    } catch (e) {
+      // Nếu có lỗi, trả về 0
+      return 0;
+    }
+  }
+
+  /// Lấy rating trung bình của một sản phẩm từ reviews
+  Future<double> getAverageRating(String productId) async {
+    try {
+      final snapshot = await _firestore
+          .collection(_collection)
+          .where('productId', isEqualTo: productId)
+          .get();
+
+      if (snapshot.docs.isEmpty) {
+        return 0.0;
+      }
+
+      int totalRating = 0;
+      for (final doc in snapshot.docs) {
+        final rating = doc.data()['rating'] as int? ?? 0;
+        totalRating += rating;
+      }
+
+      return totalRating / snapshot.docs.length;
+    } catch (e) {
+      // Nếu có lỗi, trả về 0.0
+      return 0.0;
+    }
+  }
+
+  /// Lấy cả số lượng và rating trung bình của một sản phẩm
+  Future<Map<String, dynamic>> getReviewStats(String productId) async {
+    try {
+      final snapshot = await _firestore
+          .collection(_collection)
+          .where('productId', isEqualTo: productId)
+          .get();
+
+      if (snapshot.docs.isEmpty) {
+        return {'count': 0, 'averageRating': 0.0};
+      }
+
+      int totalRating = 0;
+      for (final doc in snapshot.docs) {
+        final rating = doc.data()['rating'] as int? ?? 0;
+        totalRating += rating;
+      }
+
+      return {
+        'count': snapshot.docs.length,
+        'averageRating': totalRating / snapshot.docs.length,
+      };
+    } catch (e) {
+      return {'count': 0, 'averageRating': 0.0};
+    }
+  }
+
+  /// Lấy số lượng đánh giá của nhiều sản phẩm (stream)
+  /// Lưu ý: Firestore whereIn chỉ hỗ trợ tối đa 10 items
+  Stream<Map<String, int>> getReviewCounts(List<String> productIds) {
+    if (productIds.isEmpty) {
+      return Stream.value({});
+    }
+
+    // Firestore whereIn chỉ hỗ trợ tối đa 10 items
+    // Nếu có nhiều hơn 10, chỉ lấy 10 đầu tiên
+    final limitedIds = productIds.length > 10 
+        ? productIds.take(10).toList() 
+        : productIds;
+
+    return _firestore
+        .collection(_collection)
+        .where('productId', whereIn: limitedIds)
+        .snapshots()
+        .map((snapshot) {
+      final counts = <String, int>{};
+      for (final doc in snapshot.docs) {
+        final productId = doc.data()['productId'] as String?;
+        if (productId != null) {
+          counts[productId] = (counts[productId] ?? 0) + 1;
+        }
+      }
+      // Set 0 for products with no reviews (chỉ cho limitedIds)
+      for (final productId in limitedIds) {
+        if (!counts.containsKey(productId)) {
+          counts[productId] = 0;
+        }
+      }
+      return counts;
+    });
+  }
+
   /// Upload nhiều hình ảnh review
   Future<List<String>> uploadReviewImages(
     List<PlatformFile> imageFiles,
@@ -157,6 +260,103 @@ class ReviewService {
     }
   }
 
+  /// Cập nhật đánh giá của user (chỉ cho phép user sở hữu review)
+  Future<void> updateUserReview({
+    required String reviewId,
+    required String userName,
+    required int rating,
+    required String comment,
+    List<PlatformFile>? newImageFiles,
+    List<String>? existingImageUrls,
+    List<String>? removedImageUrls,
+  }) async {
+    final userId = _currentUserId;
+    if (userId == null) {
+      throw 'Vui lòng đăng nhập để chỉnh sửa đánh giá';
+    }
+
+    try {
+      // Kiểm tra quyền sở hữu
+      final review = await getReviewById(reviewId);
+      if (review == null) {
+        throw 'Không tìm thấy đánh giá';
+      }
+      if (review.userId != userId) {
+        throw 'Bạn không có quyền chỉnh sửa đánh giá này';
+      }
+
+      // Xóa các ảnh đã bị xóa
+      if (removedImageUrls != null && removedImageUrls.isNotEmpty) {
+        for (final imageUrl in removedImageUrls) {
+          try {
+            await _imageService.deleteImage(imageUrl);
+          } catch (e) {
+            // Ignore errors when deleting images
+          }
+        }
+      }
+
+      // Upload ảnh mới nếu có
+      List<String> newImageUrls = [];
+      if (newImageFiles != null && newImageFiles.isNotEmpty) {
+        newImageUrls = await uploadReviewImages(newImageFiles, reviewId);
+      }
+
+      // Kết hợp ảnh cũ và ảnh mới
+      final finalImageUrls = <String>[];
+      if (existingImageUrls != null) {
+        finalImageUrls.addAll(existingImageUrls);
+      }
+      finalImageUrls.addAll(newImageUrls);
+
+      // Cập nhật review
+      await _firestore.collection(_collection).doc(reviewId).update({
+        'userName': userName,
+        'rating': rating,
+        'comment': comment,
+        'imageUrls': finalImageUrls,
+        'updatedAt': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      throw 'Lỗi khi cập nhật đánh giá: ${e.toString()}';
+    }
+  }
+
+  /// Xóa đánh giá của user (chỉ cho phép user sở hữu review)
+  Future<void> deleteUserReview(String reviewId) async {
+    final userId = _currentUserId;
+    if (userId == null) {
+      throw 'Vui lòng đăng nhập để xóa đánh giá';
+    }
+
+    try {
+      // Kiểm tra quyền sở hữu
+      final review = await getReviewById(reviewId);
+      if (review == null) {
+        throw 'Không tìm thấy đánh giá';
+      }
+      if (review.userId != userId) {
+        throw 'Bạn không có quyền xóa đánh giá này';
+      }
+
+      // Delete images from storage
+      if (review.imageUrls.isNotEmpty) {
+        for (final imageUrl in review.imageUrls) {
+          try {
+            await _imageService.deleteImage(imageUrl);
+          } catch (e) {
+            // Ignore errors when deleting images
+          }
+        }
+      }
+
+      // Delete review document
+      await _firestore.collection(_collection).doc(reviewId).delete();
+    } catch (e) {
+      throw 'Lỗi khi xóa đánh giá: ${e.toString()}';
+    }
+  }
+
   /// Lấy một đánh giá theo ID
   Future<ReviewModel?> getReviewById(String reviewId) async {
     try {
@@ -221,6 +421,45 @@ class ReviewService {
       return null;
     } catch (e) {
       return null;
+    }
+  }
+
+  /// Lấy tất cả đánh giá của user hiện tại (stream)
+  Stream<List<ReviewModel>> getUserReviews() {
+    final userId = _currentUserId;
+    if (userId == null) {
+      return Stream.value([]);
+    }
+
+    return _firestore
+        .collection(_collection)
+        .where('userId', isEqualTo: userId)
+        // .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs
+          .map((doc) => ReviewModel.fromMap(doc.id, doc.data()))
+          .toList();
+    });
+  }
+
+  /// Lấy tất cả đánh giá của user hiện tại (one-time)
+  Future<List<ReviewModel>> getUserReviewsOnce() async {
+    final userId = _currentUserId;
+    if (userId == null) return [];
+
+    try {
+      final snapshot = await _firestore
+          .collection(_collection)
+          .where('userId', isEqualTo: userId)
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      return snapshot.docs
+          .map((doc) => ReviewModel.fromMap(doc.id, doc.data()))
+          .toList();
+    } catch (e) {
+      throw 'Lỗi khi lấy đánh giá: ${e.toString()}';
     }
   }
 }

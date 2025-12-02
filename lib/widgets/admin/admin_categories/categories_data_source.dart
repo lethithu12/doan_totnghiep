@@ -142,15 +142,6 @@ class CategoriesDataSource extends DataTableSource {
                 ),
         ),
         DataCell(
-          Text(
-            category.productCount.toString(),
-            style: TextStyle(
-              fontWeight: FontWeight.w500,
-              color: Colors.grey[700],
-            ),
-          ),
-        ),
-        DataCell(
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(

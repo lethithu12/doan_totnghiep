@@ -139,16 +139,6 @@ class ExpandableCategoryDataRow extends DataRow2 {
       ),
       // Parent category (always empty for parent rows)
       const DataCell(Text('—')),
-      // Product count
-      DataCell(
-        Text(
-          category.productCount.toString(),
-          style: TextStyle(
-            fontWeight: FontWeight.w500,
-            color: Colors.grey[700],
-          ),
-        ),
-      ),
       // Status
       DataCell(
         Container(
@@ -318,16 +308,6 @@ class ChildCategoryDataRow extends DataRow2 {
             fontSize: 13,
             color: Colors.grey[700],
             fontStyle: FontStyle.italic,
-          ),
-        ),
-      ),
-      // Product count
-      DataCell(
-        Text(
-          category.productCount.toString(),
-          style: TextStyle(
-            fontWeight: FontWeight.w500,
-            color: Colors.grey[700],
           ),
         ),
       ),
